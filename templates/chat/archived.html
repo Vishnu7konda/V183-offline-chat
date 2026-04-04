@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Archived Chats — V-OFFLINE CHAT{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+    <div class="auth-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="auth-container animate-fade-in-up">
+        <div class="auth-card glass-card" style="max-width: 550px;">
+            <div class="auth-header">
+                <h1>Archived Chats</h1>
+                <p>{{ conversations|length }} archived conversation{{ conversations|pluralize }}</p>
+            </div>
+            <div class="search-results">
+                {% for conv in conversations %}
+                <a href="/chat/{{ conv.id }}/" class="user-result-card glass-card">
+                    {% for p in conv.participants.all %}
+                    {% if p.id != request.user.id %}
+                    <div class="user-result-avatar">
+                        <img src="{{ p.profile.avatar_url }}" alt="{{ p.username }}">
+                    </div>
+                    <div class="user-result-info">
+                        <h4>{{ p.get_full_name|default:p.username }}</h4>
+                        <p>{{ conv.last_message.content|truncatechars:40|default:"No messages" }}</p>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </a>
+                {% empty %}
+                <div class="empty-state">
+                    <span class="material-icons-round">archive</span>
+                    <p>No archived chats</p>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="auth-footer">
+                <a href="/chat/" class="btn btn-ghost">
+                    <span class="material-icons-round">arrow_back</span>
+                    Back to Chat
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

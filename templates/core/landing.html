@@ -1,0 +1,545 @@
+{% extends 'base.html' %}
+{% block title %}{{ org_name|default:'V-OFFLINE CHAT' }} — Secure Team Communication{% endblock %}
+
+{% block extra_css %}
+<style>
+    .landing-hero {
+        position: relative;
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        padding: 120px 0 80px;
+        background: var(--bg-primary);
+    }
+
+    /* Desktop Positioning Refinement */
+    @media (min-width: 992px) {
+        .landing-hero { text-align: left !important; }
+        .hero-subtitle { margin-left: 0 !important; margin-right: 0 !important; }
+        .hero-cta-row { justify-content: flex-start !important; }
+    }
+
+    .hero-title {
+        font-size: clamp(2.5rem, 6vw, 4.2rem);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        margin-bottom: 24px;
+        color: var(--text-primary);
+    }
+
+    .hero-subtitle {
+        font-size: clamp(1.1rem, 2vw, 1.35rem);
+        color: var(--text-secondary);
+        max-width: 580px;
+        margin-bottom: 40px;
+        line-height: 1.6;
+        font-weight: 400;
+    }
+
+    .hero-cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 60px;
+    }
+
+    .hero-cta {
+        padding: 14px 36px;
+        border-radius: var(--r-md);
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all var(--t-normal);
+    }
+
+    .hero-cta-primary {
+        background: var(--accent);
+        color: #fff !important;
+        border: 1px solid var(--accent-border);
+    }
+
+    .hero-cta-primary:hover {
+        background: #0077ED;
+        box-shadow: 0 0 30px var(--accent-glow);
+        transform: translateY(-2px);
+    }
+
+    .hero-cta-secondary {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-main);
+        color: var(--text-primary) !important;
+    }
+
+    .hero-cta-secondary:hover {
+        background: var(--bg-hover);
+        border-color: var(--text-muted);
+        transform: translateY(-2px);
+    }
+
+    /* Stats section */
+    .stats-section {
+        padding: 60px 0;
+        position: relative;
+        z-index: 10;
+    }
+
+    .stat-box {
+        text-align: center;
+        padding: 40px 20px;
+        border-radius: var(--r-xl);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-main);
+        transition: all var(--t-normal);
+        position: relative;
+    }
+
+    .stat-box::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 50%; translate: -50% 0;
+        width: 40px; height: 1px;
+        background: var(--accent);
+        opacity: 0.3;
+    }
+
+    .stat-box:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--accent-border);
+        transform: translateY(-4px);
+    }
+
+    .stat-number {
+        font-size: 2.8rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: .85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-top: 8px;
+    }
+
+    /* Features section */
+    .features-section {
+        padding: 80px 0;
+    }
+
+    .section-title {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .section-title h2 {
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        font-weight: 800;
+        margin-bottom: 12px;
+    }
+
+    .section-title p {
+        color: var(--text-secondary);
+        font-size: 1.05rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .feature-card {
+        padding: 40px;
+        border-radius: var(--r-xl);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-main);
+        height: 100%;
+        transition: all var(--t-normal);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .feature-card:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--accent-border);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        transform: translateY(-6px);
+    }
+
+    .feature-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--r-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 18px;
+        font-size: 1.6rem;
+    }
+
+    .feature-icon.primary {
+        background: rgba(10, 132, 255, .15);
+        color: var(--accent);
+    }
+
+    .feature-card h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .feature-card p {
+        color: var(--text-secondary);
+        font-size: .9rem;
+        line-height: 1.6;
+    }
+
+    /* CTA section */
+    .cta-section {
+        padding: 80px 0;
+        text-align: center;
+    }
+
+    .cta-box {
+        padding: 60px 40px;
+        border-radius: var(--r-xl);
+        background: var(--gradient-primary);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-box::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(10, 132, 255, .3), transparent);
+    }
+
+    .cta-box h2 {
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        font-weight: 800;
+        color: #fff;
+        position: relative;
+        z-index: 1;
+        margin-bottom: 12px;
+    }
+
+    .cta-box p {
+        color: rgba(255, 255, 255, .85);
+        font-size: 1.05rem;
+        position: relative;
+        z-index: 1;
+        margin-bottom: 28px;
+    }
+
+    .cta-box .hero-cta {
+        position: relative;
+        z-index: 1;
+        background: #fff;
+        color: var(--accent-dark);
+    }
+
+    .cta-box .hero-cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, .3);
+        color: var(--accent-dark);
+    }
+
+    /* Floating Animation */
+    @keyframes floating {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    .floating-icon {
+        animation: floating 4s ease-in-out infinite;
+        font-size: clamp(10rem, 20vw, 15rem) !important;
+        color: var(--accent);
+        filter: drop-shadow(0 20px 50px rgba(0, 123, 255, 0.3));
+    }
+
+    /* Footer */
+    .landing-footer {
+        padding: 30px 0;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: .85rem;
+        border-top: 1px solid var(--border);
+    }
+
+    /* Nav */
+    .landing-nav {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 1000;
+        padding: 24px 0;
+        background: var(--bg-primary);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border-main);
+        transition: padding var(--t-normal), background var(--t-normal);
+    }
+
+    .landing-nav.scrolled {
+        padding: 16px 0;
+    }
+
+    .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 1.15rem;
+    }
+
+    .nav-logo .material-icons-round {
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 1.5rem;
+    }
+
+    .nav-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .nav-link-btn {
+        color: var(--text-primary);
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: var(--r-full);
+        font-weight: 600;
+        font-size: .95rem;
+        transition: all var(--t-fast);
+    }
+
+    .nav-link-btn:hover {
+        color: var(--text-primary);
+        background: var(--bg-hover);
+    }
+
+    .nav-cta {
+        background: var(--accent);
+        color: #fff !important;
+        padding: 8px 20px;
+        border-radius: var(--r-full);
+        font-weight: 700;
+        font-size: .9rem;
+        text-decoration: none;
+        transition: all var(--t-fast);
+    }
+
+    .nav-cta:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px var(--accent-glow);
+        color: #fff;
+    }
+
+    /* Responsive hero preview */
+    .hero-preview-img {
+        max-width: 100%;
+        border-radius: var(--r-xl);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .4);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<!-- Navigation -->
+<nav class="landing-nav">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="/" class="nav-logo">
+                <span class="material-icons-round">hub</span>
+                {{ org_name|default:'V-OFFLINE CHAT' }}
+            </a>
+            <div class="nav-actions d-none d-sm-flex">
+                <button class="nav-link-btn icon-btn" onclick="toggleTheme()" title="Toggle appearance" id="themeToggleBtn" style="background:none; border:none; padding:8px;">
+                    <span class="material-icons-round">dark_mode</span>
+                </button>
+                <a href="/accounts/login/" class="nav-link-btn">Login</a>
+                <a href="/accounts/register/" class="nav-cta">Register</a>
+            </div>
+            <div class="d-sm-none">
+                <a href="/accounts/login/" class="nav-cta">Login</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="landing-hero">
+    <div class="auth-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="container hero-content">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Uncompromising</span><br>
+                    <span class="gradient-text">Security.</span><br>
+                    Uninterrupted Connectivity.
+                </h1>
+                <p class="hero-subtitle">
+                    Enterprise-grade real-time messaging architecture. Experience seamless offline capabilities, localized file synchronization, and secure node discovery on your internal network.
+                </p>
+                <div class="hero-cta-row">
+                    <a href="/accounts/register/" class="hero-cta hero-cta-primary">
+                        <span class="material-icons-round">bolt</span>
+                        Get Started
+                    </a>
+                    <a href="/accounts/login/" class="hero-cta hero-cta-secondary">
+                        <span class="material-icons-round">login</span>
+                        Login
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-block text-center animate-fade-in" style="animation-delay: 0.4s;">
+                <span class="material-icons-round floating-icon">chat_bubble</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-6 col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" data-count="500">0</div>
+                    <div class="stat-label">Active Users</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" data-count="10000">0</div>
+                    <div class="stat-label">Messages Sent</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" data-count="50">0</div>
+                    <div class="stat-label">Organizations</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" data-count="99">0</div>
+                    <div class="stat-label">Uptime %</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="section-title">
+            <h2><span class="gradient-text">Enterprise Infrastructure</span></h2>
+            <p>Engineered for high-availability operations and zero-trust environments.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon primary">
+                        <span class="material-icons-round">bolt</span>
+                    </div>
+                    <h3>Payload Optimization</h3>
+                    <p>Low-latency WebSocket streaming architecture ensures real-time typing indicators and instantaneous packet delivery.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon primary">
+                        <span class="material-icons-round">wifi_off</span>
+                    </div>
+                    <h3>Air-Gapped Operation</h3>
+                    <p>Maintain full operational capacity entirely offline. Deploys seamlessly on internal network infrastructure.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon primary">
+                        <span class="material-icons-round">attach_file</span>
+                    </div>
+                    <h3>Secure Transfer</h3>
+                    <p>End-to-end local routing for all assets and documents. Data never touches external servers.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon primary">
+                        <span class="material-icons-round">qr_code</span>
+                    </div>
+                    <h3>Node Discovery</h3>
+                    <p>Establish cryptographic connections with adjacent nodes dynamically using onboard network scanning.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-box">
+            <h2>Transition to Enterprise Communications</h2>
+            <p>Deploy V-OFFLINE CHAT across your organization's infrastructure securely.</p>
+            <a href="/accounts/register/" class="hero-cta">
+                <span class="material-icons-round">rocket_launch</span>
+                Initialize Workspace
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="landing-footer">
+    <div class="container">
+        <p>&copy; 2026 {{ org_name|default:'V-OFFLINE CHAT' }}. Engineered for high-availability enterprise environments.</p>
+    </div>
+</footer>
+
+<script>
+    // Animated stat counter
+    function animateCounters() {
+        document.querySelectorAll('.stat-number[data-count]').forEach(el => {
+            const target = parseInt(el.dataset.count);
+            const duration = 2000;
+            const startTime = performance.now();
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = Math.floor(target * eased).toLocaleString() + (el.dataset.count === '99' ? '%' : '+');
+                if (progress < 1) requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+        });
+    }
+
+    // Trigger counter when stats section is visible
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateCounters();
+                statsObserver.disconnect();
+            }
+        });
+    }, { threshold: 0.3 });
+
+    const statsSection = document.querySelector('.stats-section');
+    if (statsSection) statsObserver.observe(statsSection);
+</script>
+{% endblock %}

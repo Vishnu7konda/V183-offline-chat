@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=nexus_chat.settings.prod
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: nexus_chat
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+    depends_on:
+      - web
+
+volumes:
+  pg_data:
+  media_data:
+  static_data:

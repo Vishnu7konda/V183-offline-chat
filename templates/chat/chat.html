@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+{% block title %}Operational Interface — V-OFFLINE CHAT{% endblock %}
+{% block body %}
+<div class="chat-app" id="chatApp" data-user="{{ request.user.username }}" data-user-id="{{ request.user.id }}" 
+    {% if active_conversation %}data-conversation-id="{{ active_conversation.id }}" {% endif %}
+    {% if other_user %}data-active-other-user-id="{{ other_user.id }}"{% endif %}>
+
+    <!-- Real-time Notifications / Messages -->
+    <div class="chat-notifications-stack" id="chatNotificationsStack">
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }} animate-fade-in-up" onclick="this.remove()">
+            <span class="material-icons-round">notification_important</span>
+            <p>{{ msg }}</p>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-user">
+                <img src="{{ request.user.profile.avatar_url }}" alt="" class="sidebar-avatar">
+                <div>
+                    <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
+                    <span class="status-online-text">Active Node</span>
+                </div>
+            </div>
+            <div class="sidebar-actions">
+                <button class="icon-btn" onclick="toggleTheme()" title="Toggle appearance" id="themeToggleBtn">
+                    <span class="material-icons-round">dark_mode</span>
+                </button>
+                <button class="icon-btn" onclick="toggleNotifications()" title="Toggle notifications" id="notifToggleBtn">
+                    <span class="material-icons-round">notifications</span>
+                </button>
+                <a href="/accounts/profile/" class="icon-btn" title="Settings">
+                    <span class="material-icons-round">settings</span>
+                </a>
+                <a href="/accounts/logout/" class="icon-btn" title="Exit Node">
+                    <span class="material-icons-round">power_settings_new</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-search">
+            <span class="material-icons-round">search</span>
+            <input type="text" placeholder="Filter directories..." id="chatSearchInput" autocomplete="off">
+        </div>
+
+        <div class="sidebar-quick-actions">
+            {% if current_org %}
+            <a href="/org/dashboard/" class="quick-action-btn">
+                <span class="material-icons-round">dashboard</span>
+                <span>Admin</span>
+            </a>
+            {% endif %}
+            <button class="quick-action-btn" onclick="openNewGroupModal()" id="newGroupBtn">
+                <span class="material-icons-round">group_add</span>
+                <span>New Group</span>
+            </button>
+            <a href="/chat/archived/" class="quick-action-btn">
+                <span class="material-icons-round">archive</span>
+                <span>Archived</span>
+            </a>
+        </div>
+
+        <!-- Nearby Devices Panel (real-time via WebSocket presence) -->
+        <div class="nearby-panel" id="nearbyPanel">
+            <div class="nearby-panel-header" onclick="toggleNearbyPanel()">
+                <div class="nearby-panel-title">
+                    <span class="material-icons-round">radar</span>
+                    <span>Localized Nodes</span>
+                    <span class="nearby-count-badge" id="nearbyCountBadge" style="display:none; background: var(--accent);">0</span>
+                </div>
+                <span class="material-icons-round nearby-toggle-icon" id="nearbyToggleIcon">expand_more</span>
+            </div>
+            <div class="nearby-panel-body" id="nearbyPanelBody">
+                <div class="nearby-device-list" id="nearbyDeviceList">
+                    <div class="empty-state nearby-empty">
+                        <span class="material-icons-round spin" style="color: var(--accent);">sync</span>
+                        <p>Scanning localized network for active nodes...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="conversation-list" id="conversationList">
+            {% for conv in conversations %}
+            {% with other=conv.participants.all %}
+            <a href="/chat/{{ conv.id }}/"
+                class="conversation-item {% if active_conversation and active_conversation.id == conv.id %}active{% endif %}"
+                data-id="{{ conv.id }}">
+                <div class="conv-avatar-wrap">
+                    {% if conv.is_group %}
+                    <div class="group-avatar-stack" style="background: var(--bg-hover); display: flex; align-items: center; justify-content: center; border-radius: 50%; width: 48px; height: 48px; border: 2px solid var(--accent);">
+                        <span class="material-icons-round" style="color: var(--accent);">groups</span>
+                    </div>
+                    {% else %}
+                    {% for p in other %}
+                    {% if p.id != request.user.id %}
+                    <img src="{{ p.profile.avatar_url }}" alt="{{ p.username }}" class="conv-avatar">
+                    <span class="status-dot {% if p.profile.is_online %}online{% endif %}"></span>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                <div class="conv-info">
+                    <div class="conv-top-row">
+                        <h4 class="conv-name">
+                            {% if conv.is_group %}
+                            {{ conv.group_name }}
+                            {% else %}
+                            {% for p in other %}
+                            {% if p.id != request.user.id %}{{ p.get_full_name|default:p.username }}{% endif %}
+                            {% endfor %}
+                            {% endif %}
+                        </h4>
+                        {% if conv.last_message %}
+                        <span class="conv-time">{{ conv.last_message.timestamp|timesince }} ago</span>
+                        {% endif %}
+                    </div>
+                    <div class="conv-bottom-row">
+                        <p class="conv-preview">
+                            {% if conv.last_message %}
+                            {% if conv.last_message.is_deleted %}<em>Message deleted</em>{% else %}{{ conv.last_message.content|truncatechars:45 }}{% endif %}
+                            {% else %}No messages yet{% endif %}
+                        </p>
+
+                    </div>
+                </div>
+                {% if conv.is_pinned %}<span class="material-icons-round pin-icon">push_pin</span>{% endif %}
+            </a>
+            {% endwith %}
+            {% empty %}
+            <div class="empty-state sidebar-empty">
+                <span class="material-icons-round">forum</span>
+                <p>No active data streams</p>
+                <p class="text-sm text-secondary">Detected network nodes will materialize above</p>
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <main class="chat-main" id="chatMain">
+        {% if active_conversation %}
+        <div class="chat-header">
+            <button class="icon-btn mobile-back-btn" onclick="closeChatMobile()">
+                <span class="material-icons-round">arrow_back</span>
+            </button>
+            <a href="/accounts/user/{{ other_user.username }}/" class="chat-header-user">
+                <div class="chat-header-avatar-wrap">
+                    <img src="{{ other_user.profile.avatar_url }}" alt="" class="chat-header-avatar">
+                    <span class="status-dot {% if other_user.profile.is_online %}online{% endif %}"
+                        id="headerStatusDot"></span>
+                </div>
+                <div>
+                    <h3 id="chatHeaderName">{{ other_user.get_full_name|default:other_user.username }}</h3>
+                    <p class="chat-header-status" id="chatHeaderStatus">
+                        {% if other_user.profile.is_online %}Active Stream{% else %}Last synchronized {{ other_user.profile.last_seen|timesince }} ago{% endif %}
+                    </p>
+                </div>
+            </a>
+            <div class="chat-header-actions">
+                <button class="icon-btn" title="Search messages" onclick="toggleMessageSearch()">
+                    <span class="material-icons-round">search</span>
+                </button>
+                <div class="dropdown">
+                    <button class="icon-btn" title="More options" onclick="toggleDropdown(this)">
+                        <span class="material-icons-round">more_vert</span>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="/chat/{{ active_conversation.id }}/pin/" class="dropdown-item"
+                            onclick="event.preventDefault(); fetch(this.href).then(function(){location.reload()})">
+                            <span class="material-icons-round">push_pin</span>
+                            {% if active_conversation.is_pinned %}Unpin{% else %}Pin{% endif %} Chat
+                        </a>
+                        <a href="/chat/{{ active_conversation.id }}/archive/" class="dropdown-item"
+                            onclick="event.preventDefault(); fetch(this.href).then(function(){location.reload()})">
+                            <span class="material-icons-round">archive</span>
+                            Archive Chat
+                        </a>
+                        <a href="/accounts/user/{{ other_user.username }}/" class="dropdown-item">
+                            <span class="material-icons-round">person</span>
+                            View Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="message-search-bar" id="messageSearchBar" style="display:none; background: var(--bg-secondary); border-bottom: 1px solid var(--border-main);">
+            <span class="material-icons-round" style="color: var(--text-muted); margin-left: 14px;">search</span>
+            <input type="text" placeholder="Query conversation history..." id="messageSearchInput" style="padding: 12px; background: none; border: none; color: var(--text-primary); outline: none;">
+            <button class="icon-btn" onclick="toggleMessageSearch()">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+
+        <div class="messages-area" id="messagesArea">
+            {% for msg in messages %}
+            <div class="message {% if msg.sender == request.user %}sent{% else %}received{% endif %}"
+                data-msg-id="{{ msg.id }}" data-sender="{{ msg.sender.username }}">
+                {% if msg.sender != request.user %}
+                <img src="{{ msg.sender.profile.avatar_url }}" alt="" class="msg-avatar">
+                {% endif %}
+                <div class="msg-bubble">
+                    {% if msg.is_deleted %}
+                    <p class="msg-deleted"><span class="material-icons-round">block</span> This message was deleted</p>
+                    {% elif msg.message_type == 'image' and msg.media %}
+                    <div class="msg-media"><img src="{{ msg.media.url }}" alt="Image" loading="lazy"
+                            onclick="openMediaViewer(this.src)"></div>
+                    {% elif msg.message_type == 'video' and msg.media %}
+                    <div class="msg-media"><video src="{{ msg.media.url }}" controls></video></div>
+                    {% elif msg.message_type == 'document' and msg.media %}
+                    <a href="{{ msg.media.url }}" class="msg-document" target="_blank"><span
+                            class="material-icons-round">description</span> {{ msg.content|default:"Document" }}</a>
+                    {% elif msg.message_type == 'system' %}
+                    <p class="msg-system">{{ msg.content }}</p>
+                    {% else %}
+                    <p class="msg-text">{{ msg.content }}</p>
+                    {% endif %}
+                    {% if msg.is_edited %}<span class="msg-edited-tag">edited</span>{% endif %}
+                    <div class="msg-meta">
+                        <span class="msg-time">{{ msg.timestamp|date:"g:i A" }}</span>
+                        {% if msg.sender == request.user %}
+                        <span class="msg-status">
+                            {% if msg.is_read %}<span class="material-icons-round read" style="color: var(--accent);">done_all</span>
+                            {% elif msg.is_delivered %}<span class="material-icons-round">done_all</span>
+                            {% else %}<span class="material-icons-round">done</span>
+                            {% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if not msg.is_deleted and msg.message_type != 'system' %}
+                    <div class="msg-actions">
+                        <button onclick="reactToMessage('{{ msg.id }}')" title="React"><span
+                                class="material-icons-round">add_reaction</span></button>
+                        {% if msg.sender == request.user %}
+                        <button onclick="editMessage('{{ msg.id }}')" title="Edit"><span
+                                class="material-icons-round">edit</span></button>
+                        <button onclick="deleteMessage('{{ msg.id }}')" title="Delete"><span
+                                class="material-icons-round">delete</span></button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% if msg.reactions %}
+                    <div class="msg-reactions">
+                        {% for emoji, users in msg.reactions.items %}
+                        <span class="reaction-chip" onclick="reactToMessage('{{ msg.id }}', '{{ emoji }}')">{{ emoji }} {{ users|length }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state chat-empty">
+                <span class="material-icons-round" style="color: var(--accent);">connectivity</span>
+                <h3>Initialize Conversation</h3>
+                <p>Transmit a payload to establish a stable communication link</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator" style="display:none;">
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+            <span id="typingUser"></span> is typing...
+        </div>
+
+        <!-- Upload progress bar -->
+        <div class="upload-progress-bar" id="uploadProgressBar" style="display:none;">
+            <div class="upload-progress-info">
+                <span class="material-icons-round">upload_file</span>
+                <span id="uploadFileName">Uploading...</span>
+                <button class="icon-btn" onclick="cancelUpload()" title="Cancel"><span class="material-icons-round">close</span></button>
+            </div>
+            <div class="upload-progress-track">
+                <div class="upload-progress-fill" id="uploadProgressFill" style="width:0%"></div>
+            </div>
+            <span class="upload-progress-percent" id="uploadProgressPercent">0%</span>
+        </div>
+
+        <div class="message-input-area" style="background: var(--bg-secondary); border-top: 1px solid var(--border-main); padding: 16px 24px;">
+            <div class="input-toolbar">
+                <button class="icon-btn" id="emojiBtn" title="Emoji" onclick="toggleEmojiPicker()">
+                    <span class="material-icons-round">sentiment_satisfied</span>
+                </button>
+                <label class="icon-btn" title="Attach Asset">
+                    <span class="material-icons-round">add_circle_outline</span>
+                    <input type="file" id="mediaInput" style="display:none"
+                        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip" onchange="uploadMedia(this)">
+                </label>
+            </div>
+            <div class="input-wrapper">
+                <textarea id="messageInput" placeholder="Transmit payload..." rows="1" onkeydown="handleKeyDown(event)"
+                    oninput="handleTyping()"></textarea>
+            </div>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Transmit">
+                <span class="material-icons-round">send</span>
+            </button>
+        </div>
+
+        <div class="emoji-picker" id="emojiPicker" style="display:none;">
+            <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+
+        {% else %}
+        <div class="no-chat-selected">
+            <div class="no-chat-content">
+                <span class="material-icons-round no-chat-icon" style="color: var(--accent);">security</span>
+                <h2>V-OFFLINE CHAT</h2>
+                <p>Synchronize with an existing node or discover localized infrastructure to initiate secure transmission</p>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- Onboarding & Demo Video Modal -->
+<div class="onboarding-modal-overlay" id="onboardingModal" style="display:none;">
+    <div class="onboarding-modal">
+        <button class="icon-btn onboarding-close" onclick="closeOnboarding()">
+            <span class="material-icons-round">close</span>
+        </button>
+
+        <div class="onboarding-slides" id="onboardingSlides">
+            <!-- Slide 1: Welcome -->
+            <div class="onboarding-slide active">
+                <div class="slide-icon"><span class="material-icons-round" style="color: var(--accent);">hub</span></div>
+                <h2>Workspace Initialization</h2>
+                <p>Welcome to the V-OFFLINE CHAT infrastructure. A high-security, real-time localized communication environment.</p>
+                <button class="btn btn-primary mt-1" onclick="nextOnboardingSlide()" style="background: var(--accent); border: none;">Initialize <span
+                        class="material-icons-round">arrow_forward</span></button>
+            </div>
+
+            <!-- Slide 2: Nearby Mode -->
+            <div class="onboarding-slide">
+                <div class="slide-icon"><span class="material-icons-round">radar</span></div>
+                <h2>Nearby Offline Mode</h2>
+                <p>Chat with devices on the same Wi-Fi network instantly without internet. Nearby devices appear
+                    automatically in the sidebar!</p>
+                <div class="slide-actions">
+                    <button class="btn btn-outline" onclick="prevOnboardingSlide()">Back</button>
+                    <button class="btn btn-primary" onclick="nextOnboardingSlide()">Next Step <span
+                            class="material-icons-round">arrow_forward</span></button>
+                </div>
+            </div>
+
+            <!-- Slide 3: Demo Video -->
+            <div class="onboarding-slide">
+                <div class="slide-icon"><span class="material-icons-round">play_circle</span></div>
+                <h2>See it in Action</h2>
+                <p>Watch a quick 2-minute demonstration of all the platform features.</p>
+                <div class="demo-video-container">
+                    <div class="video-placeholder" onclick="playDemoVideo()">
+                        <span class="material-icons-round play-btn">play_arrow</span>
+                        <span>Play Feature Demo</span>
+                    </div>
+                </div>
+                <div class="slide-actions mt-1">
+                    <button class="btn btn-outline" onclick="prevOnboardingSlide()">Back</button>
+                    <button class="btn btn-primary" onclick="closeOnboarding()">Get Started <span
+                            class="material-icons-round">check</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="onboarding-dots" id="onboardingDots">
+            <span class="dot active" onclick="goToSlide(0)"></span>
+            <span class="dot" onclick="goToSlide(1)"></span>
+            <span class="dot" onclick="goToSlide(2)"></span>
+        </div>
+    </div>
+</div>
+
+<div class="media-viewer" id="mediaViewer" style="display:none;" onclick="closeMediaViewer()">
+    <button class="media-viewer-close"><span class="material-icons-round">close</span></button>
+    <img src="" alt="Media" id="mediaViewerImg">
+</div>
+
+<!-- Group Creation Modal -->
+<div class="onboarding-modal-overlay" id="groupModal" style="display:none; z-index: 2000;">
+    <div class="onboarding-modal" style="max-width: 450px;">
+        <div class="sidebar-header" style="border:none; padding-bottom: 0;">
+            <h2 style="font-size: 1.25rem;">Assemble Team Node</h2>
+            <button class="icon-btn" onclick="closeGroupModal()">
+                <span class="material-icons-round">close</span>
+            </button>
+        </div>
+        
+        <div style="padding: 24px;">
+            <div class="input-wrapper" style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted);">NODE IDENTIFIER (GROUP NAME)</label>
+                <input type="text" id="groupNameInput" placeholder="Team Alpha, Project X..." style="width:100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-main); border-radius: var(--r-md); color: var(--text-primary); outline:none;">
+            </div>
+
+            <label style="display:block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted);">SELECT PARTICIPANT NODES</label>
+            <div class="participant-selector" style="max-height: 250px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--border-main); border-radius: var(--r-md); padding: 8px;">
+                {% for conv in conversations %}
+                {% if not conv.is_group %}
+                {% for p in conv.participants.all %}
+                {% if p.id != request.user.id %}
+                <div class="participant-option" style="display:flex; align-items:center; gap: 12px; padding: 10px; border-radius: var(--r-sm); cursor:pointer;">
+                    <input type="checkbox" class="participant-checkbox" value="{{ p.id }}" id="user_{{ p.id }}" style="accent-color: var(--accent); width: 18px; height: 18px;">
+                    <label for="user_{{ p.id }}" style="cursor:pointer; display:flex; align-items:center; gap: 10px; flex:1;">
+                        <img src="{{ p.profile.avatar_url }}" style="width:32px; height:32px; border-radius:50%;">
+                        <span>{{ p.get_full_name|default:p.username }}</span>
+                    </label>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <button class="btn btn-primary" onclick="createGroup()" style="width:100%; margin-top: 24px; background: var(--accent); border:none; padding: 14px; font-weight: 700;">INITIALIZE GROUP</button>
+        </div>
+    </div>
+</div>
+    {% endblock %}
+
+    {% block extra_css %}
+    <style>
+    .chat-notifications-stack {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        max-width: 400px;
+        pointer-events: none;
+    }
+    .chat-notifications-stack .alert {
+        background: var(--bg-secondary);
+        border: 1px solid var(--accent);
+        color: var(--text-primary);
+        padding: 12px 16px;
+        border-radius: var(--r-md);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        pointer-events: auto;
+        cursor: pointer;
+    }
+    .alert-success { border-left: 4px solid var(--accent) !important; }
+    .alert-error { border-left: 4px solid #ef4444 !important; }
+
+    /* Animations */
+    .animate-fade-in-up {
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .animate-fade-out {
+        animation: fadeOut 0.5s forwards;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translate(-50%, 20px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translate(-50%, 0); }
+        to { opacity: 0; transform: translate(-50%, -20px); }
+    }
+    </style>
+    {% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/chat.js"></script>
+{% endblock %}

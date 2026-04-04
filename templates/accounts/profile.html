@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Profile — V-OFFLINE CHAT{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+    <div class="auth-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div class="auth-container animate-fade-in-up">
+        <div class="auth-card glass-card" style="max-width: 500px;">
+            <div class="auth-header">
+                <h1>Edit Profile</h1>
+                <p>Customize your V-OFFLINE CHAT identity</p>
+            </div>
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="form-alert form-alert-success">
+                <span class="material-icons-round">check_circle</span>
+                <p>{{ message }}</p>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" class="auth-form">
+                {% csrf_token %}
+
+                <div class="profile-avatar-section">
+                    <div class="avatar-preview">
+                        <img src="{{ request.user.profile.avatar_url }}" alt="{{ request.user.username }}"
+                            id="avatar-preview-img">
+                        <label for="id_avatar" class="avatar-edit-btn">
+                            <span class="material-icons-round">photo_camera</span>
+                        </label>
+                    </div>
+                    <input type="file" id="id_avatar" name="avatar" accept="image/*" style="display:none"
+                        onchange="previewAvatar(this)">
+                </div>
+
+                <div class="form-group">
+                    <label for="id_first_name">
+                        <span class="material-icons-round">badge</span>
+                        First Name
+                    </label>
+                    {{ form.first_name }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_last_name">
+                        <span class="material-icons-round">badge</span>
+                        Last Name
+                    </label>
+                    {{ form.last_name }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_bio">
+                        <span class="material-icons-round">info</span>
+                        Bio
+                    </label>
+                    {{ form.bio }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_theme">
+                        <span class="material-icons-round">palette</span>
+                        Theme
+                    </label>
+                    {{ form.theme }}
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span class="material-icons-round">save</span>
+                    Save Changes
+                </button>
+            </form>
+
+            <div class="auth-footer" style="flex-direction: column; gap: 12px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                    <a href="{% url 'accounts:password_change' %}" class="btn btn-secondary btn-full">
+                        <span class="material-icons-round">lock</span>
+                        Security: Change Password
+                    </a>
+                </div>
+                <div style="display: flex; gap: 12px; width: 100%;">
+                    <a href="/chat/" class="btn btn-ghost" style="flex: 1;">
+                        <span class="material-icons-round">arrow_back</span>
+                        Back to Chat
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function previewAvatar(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => document.getElementById('avatar-preview-img').src = e.target.result;
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+{% endblock %}

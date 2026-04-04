@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}{{ org_name }} — Admin Dashboard{% endblock %}
+
+{% block body %}
+<div class="dashboard-app">
+    <!-- Dashboard Sidebar -->
+    <aside class="dash-sidebar">
+        <div class="dash-sidebar-header">
+            <img src="{{ current_org.logo_url }}" alt="" class="dash-org-logo">
+            <div>
+                <h3>{{ current_org.name }}</h3>
+                <span class="badge badge-{{ current_org.plan.tier|default:'free' }}">{{
+                    current_org.plan.tier|default:'Free'|title }}</span>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="{% url 'organizations:dashboard' %}" class="dash-nav-item active">
+                <span class="material-icons-round">dashboard</span> Overview
+            </a>
+            <a href="{% url 'organizations:members' %}" class="dash-nav-item">
+                <span class="material-icons-round">people</span> Members
+            </a>
+            <a href="{% url 'organizations:settings' %}" class="dash-nav-item">
+                <span class="material-icons-round">settings</span> Settings
+            </a>
+            <a href="{% url 'chat:chat_home' %}" class="dash-nav-item">
+                <span class="material-icons-round">chat</span> Back to Chat
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dash-main">
+        <div class="dash-header">
+            <h1>Dashboard</h1>
+            <p>Welcome back, {{ request.user.get_full_name|default:request.user.username }}</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #6C5CE7, #a29bfe);">
+                    <span class="material-icons-round">people</span>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_members }}</h3>
+                    <p>Team Members</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #00b894, #55efc4);">
+                    <span class="material-icons-round">forum</span>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_conversations }}</h3>
+                    <p>Conversations</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #0984e3, #74b9ff);">
+                    <span class="material-icons-round">chat_bubble</span>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_messages }}</h3>
+                    <p>Total Messages</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #e17055, #fab1a0);">
+                    <span class="material-icons-round">trending_up</span>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ messages_this_week }}</h3>
+                    <p>Messages This Week</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="dash-section">
+            <div class="dash-card chart-card">
+                <h3><span class="material-icons-round">bar_chart</span> Message Activity (Last 7 Days)</h3>
+                <canvas id="messagesChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Two-column layout -->
+        <div class="dash-two-col">
+            <!-- Recent Members -->
+            <div class="dash-card">
+                <h3><span class="material-icons-round">group</span> Recent Members</h3>
+                <div class="member-list">
+                    {% for m in recent_members %}
+                    <div class="member-row">
+                        <img src="{{ m.user.profile.avatar_url }}" alt="" class="member-avatar">
+                        <div class="member-info">
+                            <strong>{{ m.user.get_full_name|default:m.user.username }}</strong>
+                            <span class="badge badge-{{ m.role }}">{{ m.role|title }}</span>
+                        </div>
+                        <span class="member-date">{{ m.joined_at|timesince }} ago</span>
+                    </div>
+                    {% empty %}
+                    <p class="empty-text">No members yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Audit Log -->
+            <div class="dash-card">
+                <h3><span class="material-icons-round">history</span> Activity Log</h3>
+                <div class="audit-list">
+                    {% for log in recent_logs %}
+                    <div class="audit-row">
+                        <span class="material-icons-round audit-icon">{{ log.action|default:'info' }}</span>
+                        <div class="audit-info">
+                            <strong>{{ log.get_action_display }}</strong>
+                            <span>{{ log.user.username|default:'System' }} — {{ log.timestamp|timesince }} ago</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="empty-text">No activity yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const ctx = document.getElementById('messagesChart');
+    if (ctx) {
+        const data = {{ daily_messages| safe
+    }};
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.date),
+            datasets: [{
+                label: 'Messages',
+                data: data.map(d => d.count),
+                backgroundColor: 'rgba(108, 92, 231, 0.6)',
+                borderColor: '#6C5CE7',
+                borderWidth: 2,
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999' } },
+                x: { grid: { display: false }, ticks: { color: '#999' } }
+            }
+        }
+    });
+    }
+</script>
+{% endblock %}

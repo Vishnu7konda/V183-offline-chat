@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Localized Network Nodes — V-OFFLINE CHAT{% endblock %}
+{% block body %}
+<div class="nearby-page">
+    <div class="nearby-header">
+        <a href="/chat/" class="icon-btn"><span class="material-icons-round">arrow_back</span></a>
+        <h2>Localized Network Nodes</h2>
+        <button class="btn btn-primary btn-sm" id="scanBtn" onclick="startScan()" style="background: var(--accent); border: none;">
+            <span class="material-icons-round">radar</span> Initialize Diagnostics
+        </button>
+    </div>
+
+    <div class="nearby-info">
+        <div class="radar-animation" id="radarAnimation">
+            <div class="radar-circle"></div>
+            <div class="radar-circle delay-1"></div>
+            <div class="radar-circle delay-2"></div>
+            <span class="material-icons-round radar-icon">wifi_tethering</span>
+        </div>
+        <p>Synchronize with active nodes on the shared infrastructure</p>
+        <p class="nearby-note">Both terminal endpoints must be on the same localized network segment</p>
+    </div>
+
+    <div class="nearby-devices-list" id="deviceList">
+        <div class="empty-state">
+            <span class="material-icons-round" style="color: var(--accent);">devices</span>
+            <p>No active nodes detected. Initialize diagnostics to begin.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let scanning = false;
+
+    function startScan() {
+        const btn = document.getElementById('scanBtn');
+        const list = document.getElementById('deviceList');
+        const radar = document.getElementById('radarAnimation');
+
+        if (scanning) return;
+        scanning = true;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-icons-round spin">radar</span> Synchronizing...';
+        radar.classList.add('active');
+
+        // Poll the nearby devices API
+        fetch('/api/nearby/')
+            .then(r => r.json())
+            .then(data => {
+                list.innerHTML = '';
+                if (data.devices && data.devices.length > 0) {
+                    data.devices.forEach(device => {
+                        list.innerHTML += `
+                        <div class="nearby-device-card">
+                            <img src="${device.avatar || '/static/img/default-avatar.svg'}" class="nearby-avatar" alt="">
+                            <div class="nearby-device-info">
+                                <h4>${device.username}</h4>
+                                <span class="nearby-ip">${device.ip}</span>
+                            </div>
+                            <a href="/chat/start/${device.user_id}/" class="btn btn-primary btn-sm">
+                                <span class="material-icons-round">chat</span> Chat
+                            </a>
+                        </div>
+                    `;
+                    });
+                } else {
+                    list.innerHTML = '<div class="empty-state"><span class="material-icons-round">devices</span><p>No nearby devices found. Make sure others are on the same network.</p></div>';
+                }
+            })
+            .catch(() => {
+                list.innerHTML = '<div class="empty-state"><span class="material-icons-round">wifi_off</span><p>Network scan failed. Check your connection.</p></div>';
+            })
+            .finally(() => {
+                scanning = false;
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons-round">radar</span> Initialize Diagnostics';
+                setTimeout(() => radar.classList.remove('active'), 500);
+            });
+    }
+</script>
+{% endblock %}

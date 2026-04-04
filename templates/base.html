@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ org_name|default:'V-OFFLINE CHAT' }} - Enterprise Internal Communication Architecture">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="/static/manifest.json">
+    <title>{% block title %}{{ org_name|default:'V-OFFLINE CHAT' }}{% endblock %}</title>
+    <!-- Local fonts (offline-capable) -->
+    <link rel="stylesheet" href="/static/css/fonts.css">
+    <!-- Bootstrap 5 (bundled locally) -->
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root {
+            --org-primary: {
+                    {
+                    org_primary_color|default: '#6C5CE7'
+                }
+            }
+
+            ;
+
+            --org-secondary: {
+                    {
+                    org_secondary_color|default: '#a29bfe'
+                }
+            }
+
+            ;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    {% block body %}{% endblock %}
+    <!-- Bootstrap JS (bundled locally) -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    {% block extra_js %}{% endblock %}
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(() => console.log('[Nexus] SW registered'))
+                .catch(e => console.log('[Nexus] SW failed:', e));
+        }
+    </script>
+</body>
+
+</html>

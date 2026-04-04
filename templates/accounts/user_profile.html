@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}{{ target_user.username }} — V-OFFLINE CHAT{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+    <div class="auth-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div class="auth-container animate-fade-in-up">
+        <div class="auth-card glass-card" style="max-width: 420px;">
+            <div class="profile-view-header">
+                <div class="avatar-large">
+                    <img src="{{ target_user.profile.avatar_url }}" alt="{{ target_user.username }}">
+                    <span
+                        class="status-dot {% if target_user.profile.is_online %}online{% else %}offline{% endif %}"></span>
+                </div>
+                <h2>{{ target_user.get_full_name|default:target_user.username }}</h2>
+                <p class="profile-username">@{{ target_user.username }}</p>
+                {% if target_user.profile.bio %}
+                <p class="profile-bio">{{ target_user.profile.bio }}</p>
+                {% endif %}
+                <p class="profile-status">
+                    {% if target_user.profile.is_online %}
+                    <span class="status-online">Online</span>
+                    {% else %}
+                    Last seen {{ target_user.profile.last_seen|timesince }} ago
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="profile-actions">
+                <a href="/chat/start/{{ target_user.id }}/" class="btn btn-primary btn-full">
+                    <span class="material-icons-round">chat</span>
+                    Send Message
+                </a>
+                {% if is_blocked %}
+                <a href="/accounts/unblock/{{ target_user.id }}/" class="btn btn-ghost btn-full">
+                    <span class="material-icons-round">block</span>
+                    Unblock User
+                </a>
+                {% else %}
+                <a href="/accounts/block/{{ target_user.id }}/" class="btn btn-danger btn-full">
+                    <span class="material-icons-round">block</span>
+                    Block User
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="auth-footer">
+                <a href="/chat/" class="btn btn-ghost">
+                    <span class="material-icons-round">arrow_back</span>
+                    Back to Chat
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

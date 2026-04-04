@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard — V-OFFLINE CHAT{% endblock %}
+
+{% block body %}
+<div class="auth-page" style="min-height:100vh;">
+    <div class="auth-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="dashboard-container animate-fade-in-up">
+        <div class="dashboard-header glass-card">
+            <div>
+                <h1><span class="material-icons-round">dashboard</span> Admin Dashboard</h1>
+                <p>V-OFFLINE CHAT — System Overview</p>
+            </div>
+            <a href="/chat/" class="btn btn-ghost">
+                <span class="material-icons-round">arrow_back</span> Back to Chat
+            </a>
+        </div>
+
+        <!-- Stats cards -->
+        <div class="stats-grid">
+            <div class="stat-card glass-card">
+                <span class="material-icons-round stat-icon" style="color: var(--accent);">group</span>
+                <div>
+                    <h3>{{ total_users }}</h3>
+                    <p>Total Users</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card">
+                <span class="material-icons-round stat-icon" style="color: #22c55e;">wifi</span>
+                <div>
+                    <h3>{{ online_users }}</h3>
+                    <p>Online Now</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card">
+                <span class="material-icons-round stat-icon" style="color: #f59e0b;">forum</span>
+                <div>
+                    <h3>{{ total_conversations }}</h3>
+                    <p>Conversations</p>
+                </div>
+            </div>
+            <div class="stat-card glass-card">
+                <span class="material-icons-round stat-icon" style="color: #8b5cf6;">chat_bubble</span>
+                <div>
+                    <h3>{{ total_messages }}</h3>
+                    <p>Messages</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent users -->
+        <div class="dashboard-section glass-card">
+            <h2><span class="material-icons-round">person_add</span> Recent Users</h2>
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Joined</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in recent_users %}
+                        <tr>
+                            <td>
+                                <div class="table-user">
+                                    <img src="{{ u.profile.avatar_url }}" alt="">
+                                    <span>{{ u.username }}</span>
+                                </div>
+                            </td>
+                            <td>{{ u.email|default:"—" }}</td>
+                            <td>{{ u.date_joined|timesince }} ago</td>
+                            <td>
+                                <span
+                                    class="status-badge {% if u.profile.is_online %}online{% else %}offline{% endif %}">
+                                    {% if u.profile.is_online %}Online{% else %}Offline{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:1rem;">
+                <a href="/admin/" class="btn btn-ghost btn-sm">Open Django Admin →</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

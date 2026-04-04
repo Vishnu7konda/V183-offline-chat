@@ -1,0 +1,397 @@
+/chat/: ERROR
+    len_values = len(values)
+                 ^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\query.py", line 262, in __len__
+    self._fetch_all()
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\query.py", line 1324, in _fetch_all
+    self._result_cache = 
+list(self._iterable_class(self))
+                         
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\query.py", line 51, in __iter__
+    results = compiler.execute_sql(chunked_fetc
+h=self.chunked_fetch, 
+chunk_size=self.chunk_size)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\sql\compiler.py", line 1175, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 98, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 66, in execute
+    return self._execute_with_wrappers(sql, 
+params, many=False, executor=self._execute)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 75, in 
+_execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 79, in _execute
+    with self.db.wrap_database_errors:
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\uti
+ls.py", line 90, in __exit__
+    raise 
+dj_exc_value.with_traceback(traceback) from 
+exc_value
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 84, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\cursor
+.py", line 59, in execute
+    raise db_exe from e
+django.db.utils.DatabaseError
+Traceback (most recent call last):
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\query.py", line 857, in parse
+    return handler(self, statement)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\query.py", line 933, in _select
+    return SelectQuery(self.db, 
+self.connection_properties, sm, self._params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\query.py", line 116, in __init__
+    super().__init__(*args)
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\query.py", line 62, in __init__
+    self.parse()
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\query.py", line 152, in parse
+    self.where = WhereConverter(self, 
+statement)
+                 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\converters.py", line 27, in __init__
+    self.parse()
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\converters.py", line 119, in parse
+    self.op = WhereOp(
+              ^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 475, in __init__
+    self._statement2ops()
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 428, in _statement2ops
+    op = self._token2op(tok, statement)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 405, in _token2op
+    op = ParenthesisOp(SQLStatement(tok), 
+self.query)
+         
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 493, in __init__
+    self._statement2ops()
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 428, in _statement2ops
+    op = self._token2op(tok, statement)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 405, in _token2op
+    op = ParenthesisOp(SQLStatement(tok), 
+self.query)
+         
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 493, in __init__
+    self._statement2ops()
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\operators.py", line 438, in _statement2ops
+    if prev_op.lhs is None:
+       ^^^^^^^^^^^
+AttributeError: 'NoneType' object has no 
+attribute 'lhs'
+
+The above exception was the direct cause of 
+the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\cursor
+.py", line 51, in execute
+    self.result = Query(
+                  ^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\query.py", line 784, in __init__
+    self._query = self.parse()
+                  ^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\sql2mo
+ngo\query.py", line 885, in parse
+    raise exe from e
+djongo.exceptions.SQLDecodeError: 
+
+	Keyword: None
+	Sub SQL: None
+	FAILED SQL: SELECT "chat_conversation"."id", 
+"chat_conversation"."organization_id", 
+"chat_conversation"."created_at", 
+"chat_conversation"."updated_at", 
+"chat_conversation"."is_pinned", 
+"chat_conversation"."is_archived" FROM 
+"chat_conversation" INNER JOIN 
+"chat_conversation_participants" ON 
+("chat_conversation"."id" = "chat_conversation_
+participants"."conversation_id") WHERE 
+("chat_conversation_participants"."user_id" = 
+%(0)s AND NOT 
+("chat_conversation"."is_archived")) ORDER BY 
+"chat_conversation"."updated_at" DESC
+	Params: (3,)
+	Version: 1.3.6
+
+The above exception was the direct cause of 
+the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 84, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\cursor
+.py", line 59, in execute
+    raise db_exe from e
+djongo.database.DatabaseError
+
+The above exception was the direct cause of 
+the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\saini\OneDrive\Desktop\SDF\tes
+t_views.py", line 25, in <module>
+    response = client.get('/chat/')
+               ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\test\c
+lient.py", line 742, in get
+    response = super().get(path, data=data, 
+secure=secure, **extra)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\test\c
+lient.py", line 396, in get
+    return self.generic('GET', path, 
+secure=secure, **{
+           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\test\c
+lient.py", line 473, in generic
+    return self.request(**r)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\test\c
+lient.py", line 719, in request
+    self.check_exception(response)
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\test\c
+lient.py", line 580, in check_exception
+    raise exc_value
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\core\h
+andlers\exception.py", line 47, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\core\h
+andlers\base.py", line 181, in _get_response
+    response = wrapped_callback(request, 
+*callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\contri
+b\auth\decorators.py", line 21, in 
+_wrapped_view
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\OneDrive\Desktop\SDF\cha
+t\views.py", line 25, in chat_home
+    return render(request, 'chat/chat.html', {
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\shortc
+uts.py", line 19, in render
+    content = 
+loader.render_to_string(template_name, 
+context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\loader.py", line 62, in render_to_string
+    return template.render(context, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\backends\django.py", line 61, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 170, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 162, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 938, in render
+    bit = node.render_annotated(context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 905, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\loader_tags.py", line 150, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 162, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 938, in render
+    bit = node.render_annotated(context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 905, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\loader_tags.py", line 62, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 938, in render
+    bit = node.render_annotated(context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\base.py", line 905, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\templa
+te\defaulttags.py", line 171, in render
+    len_values = len(values)
+                 ^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\query.py", line 262, in __len__
+    self._fetch_all()
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\query.py", line 1324, in _fetch_all
+    self._result_cache = 
+list(self._iterable_class(self))
+                         
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\query.py", line 51, in __iter__
+    results = compiler.execute_sql(chunked_fetc
+h=self.chunked_fetch, 
+chunk_size=self.chunk_size)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\mod
+els\sql\compiler.py", line 1175, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 98, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 66, in execute
+    return self._execute_with_wrappers(sql, 
+params, many=False, executor=self._execute)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 75, in 
+_execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 79, in _execute
+    with self.db.wrap_database_errors:
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\uti
+ls.py", line 90, in __exit__
+    raise 
+dj_exc_value.with_traceback(traceback) from 
+exc_value
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\django\db\bac
+kends\utils.py", line 84, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\djongo\cursor
+.py", line 59, in execute
+    raise db_exe from e
+django.db.utils.DatabaseError

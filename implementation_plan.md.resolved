@@ -1,0 +1,176 @@
+# Nexus Chat Web — Implementation Plan
+
+A full-stack real-time chat platform built with Django, Django Channels, and a premium glassmorphism frontend. Designed as a portfolio-quality, production-ready application.
+
+## Proposed Changes
+
+### Project Structure
+
+```
+SDF/
+├── nexus_chat/           # Django project root
+│   ├── settings/
+│   │   ├── base.py       # Shared settings
+│   │   ├── dev.py        # SQLite + DEBUG
+│   │   └── prod.py       # PostgreSQL + security
+│   ├── asgi.py           # Channels ASGI config
+│   ├── urls.py
+│   └── wsgi.py
+├── accounts/             # Auth, profiles, presence
+├── chat/                 # Messages, rooms, consumers
+├── core/                 # Landing, utilities
+├── api/                  # DRF viewsets & serializers
+├── templates/            # Global templates
+│   ├── base.html
+│   ├── accounts/
+│   ├── chat/
+│   └── core/
+├── static/
+│   ├── css/style.css     # Glassmorphism theme
+│   ├── js/               # Chat logic, WebSocket, emoji
+│   └── img/
+├── media/                # Uploaded files
+├── manage.py
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── nginx.conf
+├── .env.example
+└── README.md
+```
+
+---
+
+### 1. Backend Foundation
+
+#### [NEW] `manage.py`, `nexus_chat/` settings, urls, asgi
+- Standard Django project with split settings (base/dev/prod)
+- ASGI config with Channels routing
+- In-memory channel layer for dev (no Redis dependency)
+
+#### [NEW] `requirements.txt`
+- Django, channels, djangorestframework, Pillow, django-cors-headers, PyJWT
+
+---
+
+### 2. Accounts App
+
+#### [NEW] `accounts/models.py`
+- `UserProfile` — avatar, bio, online status, last_seen, theme preference
+- `BlockedUser` — blocking/unblocking relationships
+
+#### [NEW] `accounts/views.py`
+- Registration, login, logout, profile edit, user search, block/unblock
+
+#### [NEW] `accounts/forms.py`
+- RegistrationForm, LoginForm, ProfileForm
+
+#### [NEW] `accounts/urls.py`
+
+---
+
+### 3. Chat App
+
+#### [NEW] `chat/models.py`
+- `Conversation` — participants, created_at, is_pinned, is_archived
+- `Message` — sender, conversation FK, content, message_type, media, timestamp, is_delivered, is_read, is_edited, is_deleted, reply_to, reactions
+
+#### [NEW] `chat/consumers.py`
+- `ChatConsumer` (async WebSocket consumer) — connect/disconnect/receive
+- Room-based messaging via channel layers
+- Typing indicators, delivery/read receipts, message edit/delete
+
+#### [NEW] `chat/routing.py`
+- WebSocket URL pattern: `ws/chat/<conversation_id>/`
+
+#### [NEW] `chat/views.py`
+- Conversation list, conversation detail, create conversation, media upload
+
+---
+
+### 4. REST API
+
+#### [NEW] `api/serializers.py`
+- UserSerializer, ProfileSerializer, ConversationSerializer, MessageSerializer
+
+#### [NEW] `api/views.py`
+- ViewSets for users, conversations, messages with search & filtering
+
+#### [NEW] `api/urls.py`
+- Router-based URL registration
+
+---
+
+### 5. Frontend (Templates + CSS + JS)
+
+#### [NEW] `templates/base.html`
+- Base layout with dark/light toggle, notifications, responsive nav
+
+#### [NEW] `templates/accounts/login.html`, `register.html`, `profile.html`
+- Glassmorphism cards, animated gradients, smooth form transitions
+
+#### [NEW] `templates/chat/chat.html`
+- 3-panel layout: sidebar (conversations) | main chat | profile panel
+- Emoji picker, message bubbles, typing indicator, skeleton loaders
+
+#### [NEW] `static/css/style.css`
+- Complete glassmorphism design system, CSS variables for themes, animations
+
+#### [NEW] `static/js/chat.js`
+- WebSocket connection, message send/receive, typing status, reactions
+- Emoji picker, message search, scroll management, notifications
+
+#### [NEW] `static/js/app.js`
+- Theme toggle, notifications, sidebar interactions, micro-animations
+
+---
+
+### 6. Admin Dashboard
+
+#### [NEW] `templates/core/admin_dashboard.html`
+- User management table, chat monitoring, analytics cards
+- Uses Django's built-in admin + custom admin views
+
+---
+
+### 7. Deployment Configuration
+
+#### [NEW] `Dockerfile`, `docker-compose.yml`, `nginx.conf`, `.env.example`, `README.md`
+- Docker multi-service setup (web, redis, postgres, nginx)
+- Production deployment guide
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Database**: Development uses SQLite (no external DB needed). Production settings reference PostgreSQL.
+
+> [!IMPORTANT]
+> **Channel Layer**: Development uses `InMemoryChannelLayer` to avoid Redis dependency. Production uses Redis.
+
+> [!NOTE]
+> **Nearby Mode**: Implemented as a conceptual feature with local IP detection and QR code display. Full peer-to-peer requires WebRTC which is included as optional scaffolding.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. **Django system check**: `python manage.py check --deploy` — ensures no configuration errors
+2. **Migrations**: `python manage.py makemigrations && python manage.py migrate` — verifies models
+3. **Dev server start**: `python manage.py runserver` — confirms app loads without errors
+
+### Browser Verification
+1. Navigate to `http://127.0.0.1:8000/` → Landing page loads with premium UI
+2. Navigate to `/accounts/register/` → Register a new user
+3. Navigate to `/accounts/login/` → Login and redirect to chat
+4. Open `/chat/` → Chat interface with sidebar loads
+5. Open two browser tabs, start a conversation → Real-time messaging works
+6. Toggle dark/light mode → Theme switches smoothly
+7. Check responsive layout at mobile/tablet/desktop widths
+
+### Manual Verification
+- Verify WebSocket connection in browser DevTools (Network → WS tab)
+- Upload an image in chat → verify it appears in `/media/`
+- Check admin dashboard at `/admin/` or `/dashboard/`

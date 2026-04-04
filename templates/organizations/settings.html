@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ org_name }} — Settings{% endblock %}
+
+{% block body %}
+<div class="dashboard-app">
+    <aside class="dash-sidebar">
+        <div class="dash-sidebar-header">
+            <img src="{{ current_org.logo_url }}" alt="" class="dash-org-logo">
+            <div>
+                <h3>{{ current_org.name }}</h3>
+                <span class="badge badge-{{ current_org.plan.tier|default:'free' }}">{{
+                    current_org.plan.tier|default:'Free'|title }}</span>
+            </div>
+        </div>
+        <nav class="dash-nav">
+            <a href="{% url 'organizations:dashboard' %}" class="dash-nav-item">
+                <span class="material-icons-round">dashboard</span> Overview
+            </a>
+            <a href="{% url 'organizations:members' %}" class="dash-nav-item">
+                <span class="material-icons-round">people</span> Members
+            </a>
+            <a href="{% url 'organizations:settings' %}" class="dash-nav-item active">
+                <span class="material-icons-round">settings</span> Settings
+            </a>
+            <a href="{% url 'chat:chat_home' %}" class="dash-nav-item">
+                <span class="material-icons-round">chat</span> Back to Chat
+            </a>
+        </nav>
+    </aside>
+
+    <main class="dash-main">
+        <div class="dash-header">
+            <h1>Organization Settings</h1>
+            <p>Manage branding, features, and configuration</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="settings-form">
+            {% csrf_token %}
+
+            <div class="dash-card">
+                <h3><span class="material-icons-round">business</span> General</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Organization Name</label>
+                        <input type="text" name="name" value="{{ org.name }}" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>App Display Name</label>
+                        <input type="text" name="app_name" value="{{ org.app_name }}" class="form-input">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Description</label>
+                        <textarea name="description" class="form-input" rows="3">{{ org.description }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <h3><span class="material-icons-round">palette</span> Branding</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Logo</label>
+                        <input type="file" name="logo" accept="image/*" class="form-input">
+                        {% if org.logo %}<img src="{{ org.logo_url }}" class="preview-logo" alt="Current logo">{% endif
+                        %}
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Color</label>
+                        <input type="color" name="primary_color" value="{{ org.primary_color }}"
+                            class="form-input color-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Secondary Color</label>
+                        <input type="color" name="secondary_color" value="{{ org.secondary_color }}"
+                            class="form-input color-input">
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <h3><span class="material-icons-round">tune</span> Features</h3>
+                <div class="feature-toggles">
+                    <label class="toggle-item">
+                        <input type="checkbox" name="nearby_mode_enabled" {% if org.nearby_mode_enabled %}checked{%
+                            endif %}>
+                        <span class="toggle-label">
+                            <span class="material-icons-round">radar</span> Nearby Discovery Mode
+                        </span>
+                    </label>
+                    <label class="toggle-item">
+                        <input type="checkbox" name="file_sharing_enabled" {% if org.file_sharing_enabled %}checked{%
+                            endif %}>
+                        <span class="toggle-label">
+                            <span class="material-icons-round">attach_file</span> File Sharing
+                        </span>
+                    </label>
+                    <div class="form-group">
+                        <label>Max File Size (MB)</label>
+                        <input type="number" name="max_file_size_mb" value="{{ org.max_file_size_mb }}" min="1"
+                            max="100" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-icons-round">save</span> Save Changes
+                </button>
+            </div>
+        </form>
+    </main>
+</div>
+{% endblock %}

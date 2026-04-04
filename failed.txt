@@ -1,0 +1,23 @@
+FAILED SQL: ('SELECT 
+"organizations_organizationmembership"."id", "o
+rganizations_organizationmembership"."organizat
+ion_id", "organizations_organizationmembership"
+."user_id", 
+"organizations_organizationmembership"."role", 
+"organizations_organizationmembership"."is_acti
+ve", "organizations_organizationmembership"."jo
+ined_at" FROM 
+"organizations_organizationmembership" WHERE ("
+organizations_organizationmembership"."is_activ
+e" AND "organizations_organizationmembership"."
+user_id" = %(0)s) ORDER BY "organizations_organ
+izationmembership"."joined_at" DESC LIMIT 1',)
+	Params: ((3,),)
+	Version: 1.3.6
+
+The above exception was the direct cause of 
+the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\saini\AppData\Local\Programs\P
+ython\Python311\Lib\site-packages\d

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Query Data Streams — V-OFFLINE CHAT{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+    <div class="auth-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="auth-container animate-fade-in-up">
+        <div class="auth-card glass-card" style="max-width: 550px;">
+            <div class="auth-header">
+                <h1>Query Data Streams</h1>
+            </div>
+            <form method="get" class="search-bar-form">
+                <div class="search-bar">
+                    <span class="material-icons-round" style="color: var(--accent);">search</span>
+                    <input type="text" name="q" value="{{ query }}" placeholder="Enter query parameters..." class="form-input"
+                        autofocus>
+                </div>
+            </form>
+            <div class="search-results">
+                {% for msg in results %}
+                <a href="/chat/{{ msg.conversation_id }}/" class="user-result-card glass-card">
+                    <div class="user-result-avatar">
+                        <img src="{{ msg.sender.profile.avatar_url }}" alt="">
+                    </div>
+                    <div class="user-result-info">
+                        <h4>{{ msg.sender.username }}</h4>
+                        <p>{{ msg.content|truncatechars:60 }}</p>
+                        <small>Synchronized {{ msg.timestamp|timesince }} ago</small>
+                    </div>
+                </a>
+                {% empty %}
+                {% if query %}
+                <div class="empty-state">
+                    <span class="material-icons-round" style="color: var(--accent-dark);">search_off</span>
+                    <p>No data streams matched "{{ query }}"</p>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="auth-footer">
+                <a href="/chat/" class="btn btn-ghost" style="color: var(--accent-light);">
+                    <span class="material-icons-round">arrow_back</span>
+                    Terminate Query
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

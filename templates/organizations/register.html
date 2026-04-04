@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Create Organization{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="material-icons-round auth-icon">business</span>
+            <h1>Create Your Organization</h1>
+            <p>Set up a workspace for your team, company, or institution</p>
+        </div>
+
+        {% if messages %}
+        <div class="auth-messages">
+            {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="auth-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Organization Name *</label>
+                <input type="text" name="org_name" placeholder="e.g. Acme Corp" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Organization Code (URL slug)</label>
+                <input type="text" name="org_slug" placeholder="e.g. acme-corp" class="form-input">
+                <small>Used as unique identifier. Auto-generated from name if left blank.</small>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" placeholder="What does your organization do?" class="form-input"
+                    rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Logo (optional)</label>
+                <input type="file" name="logo" accept="image/*" class="form-input">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">
+                <span class="material-icons-round">rocket_launch</span> Create Organization
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an organization? <a href="{% url 'accounts:login' %}">Sign in</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
