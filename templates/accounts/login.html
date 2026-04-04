@@ -96,58 +96,6 @@
                         </button>
                     </form>
 
-                    <!-- Phone Number Login -->
-                    <div class="auth-divider"><span>or use phone number</span></div>
-
-                    <div class="phone-auth-section" id="phoneAuthSection">
-                        <div class="form-group" id="phoneStep">
-                            <label>
-                                <span class="material-icons-round">phone</span>
-                                Phone Number
-                            </label>
-                            <div class="phone-input-row">
-                                <select class="form-input" id="countryCode" style="max-width: 100px;">
-                                    <option value="+91">🇮🇳 +91</option>
-                                    <option value="+1">🇺🇸 +1</option>
-                                    <option value="+44">🇬🇧 +44</option>
-                                    <option value="+61">🇦🇺 +61</option>
-                                    <option value="+81">🇯🇵 +81</option>
-                                    <option value="+86">🇨🇳 +86</option>
-                                    <option value="+49">🇩🇪 +49</option>
-                                </select>
-                                <input type="tel" class="form-input" id="phoneNumber" placeholder="Enter phone number">
-                            </div>
-                            <button type="button" class="btn btn-ghost btn-full" style="margin-top: 10px;"
-                                onclick="sendPhoneOTP()">
-                                <span class="material-icons-round">send</span>
-                                Send Verification Code
-                            </button>
-                        </div>
-                        <div class="form-group" id="otpStep" style="display: none;">
-                            <label>
-                                <span class="material-icons-round">pin</span>
-                                Verification Code
-                            </label>
-                            <div class="otp-input-row" id="otpInputRow">
-                                <input type="text" maxlength="1" class="otp-box" data-index="0">
-                                <input type="text" maxlength="1" class="otp-box" data-index="1">
-                                <input type="text" maxlength="1" class="otp-box" data-index="2">
-                                <input type="text" maxlength="1" class="otp-box" data-index="3">
-                                <input type="text" maxlength="1" class="otp-box" data-index="4">
-                                <input type="text" maxlength="1" class="otp-box" data-index="5">
-                            </div>
-                            <button type="button" class="btn btn-primary btn-full" style="margin-top: 10px;"
-                                onclick="verifyPhoneOTP()">
-                                <span class="material-icons-round">verified</span>
-                                Verify & Sign In
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-full btn-sm" style="margin-top: 6px;"
-                                onclick="sendPhoneOTP()">
-                                Resend Code
-                            </button>
-                        </div>
-                    </div>
-
                     <div class="auth-footer">
                         <p>No active account? <a href="/accounts/register/" style="color: var(--accent);">Register</a></p>
                         <p style="margin-top: 6px;"><a href="/org/register/" style="color: var(--accent-light);">Initialize Organization Node</a></p>
@@ -159,94 +107,18 @@
 </div>
 
 <script>
-    // ── Phone OTP (Django backend) ──
-    async function sendPhoneOTP() {
-        const code = document.getElementById('countryCode').value;
-        const phone = document.getElementById('phoneNumber').value.trim();
-        if (!phone) { showAuthMessage('Please enter your phone number.', 'error'); return; }
-
-        const fullPhone = code + phone;
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
-            const resp = await fetch('/accounts/send-otp/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ phone: fullPhone })
-            });
-            const data = await resp.json();
-            if (data.status === 'sent') {
-                document.getElementById('otpStep').style.display = 'block';
-                showAuthMessage(data.message || 'Verification code sent!', 'success');
-                // Auto-focus first OTP box
-                document.querySelector('.otp-box')?.focus();
-            } else {
-                showAuthMessage(data.message || 'Failed to send code', 'error');
-            }
-        } catch (e) {
-            document.getElementById('otpStep').style.display = 'block';
-            showAuthMessage('Enter the verification code (check server console for demo mode).', 'info');
-        }
-    }
-
-    async function verifyPhoneOTP() {
-        const boxes = document.querySelectorAll('.otp-box');
-        const otp = Array.from(boxes).map(b => b.value).join('');
-        if (otp.length !== 6) { showAuthMessage('Please enter the full 6-digit code.', 'error'); return; }
-
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
-            const phone = document.getElementById('countryCode').value + document.getElementById('phoneNumber').value.trim();
-            const resp = await fetch('/accounts/verify-otp/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ otp: otp, phone: phone })
-            });
-            const data = await resp.json();
-            if (data.status === 'verified') {
-                window.location.href = data.redirect || '/chat/';
-            } else {
-                showAuthMessage(data.message || 'Invalid code', 'error');
-            }
-        } catch (e) {
-            showAuthMessage('Verification failed. Please try again.', 'error');
-        }
-    }
-
-    // ── UI Helpers ──
-    function showAuthMessage(msg, type) {
-        const el = document.getElementById('authAlertMsg');
-        if (!el) return;
-        el.className = 'form-alert form-alert-' + (type === 'error' ? 'error' : 'success');
-        el.innerHTML = '<span class="material-icons-round">' + (type === 'error' ? 'error' : 'check_circle') + '</span><p>' + msg + '</p>';
-        el.style.display = 'flex';
-        if (type !== 'error') setTimeout(() => el.style.display = 'none', 5000);
-    }
-
-    // ── OTP Auto-focus ──
-    document.querySelectorAll('.otp-box').forEach((box, i, boxes) => {
-        box.addEventListener('input', () => {
-            if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
-        });
-        box.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus();
-        });
-    });
-
     // ── Hide OAuth buttons when offline (LAN mode) ──
     if (!navigator.onLine) {
         const socialBtns = document.querySelector('.social-auth-buttons');
         if (socialBtns) socialBtns.style.display = 'none';
-        // Also hide the "or sign in with email" divider above since social is hidden
         const dividers = document.querySelectorAll('.auth-divider');
         if (dividers.length > 0) dividers[0].innerHTML = '<span>Sign in with your credentials</span>';
     }
     window.addEventListener('online', () => {
-        const socialBtns = document.querySelector('.social-auth-buttons');
-        if (socialBtns) socialBtns.style.display = '';
+        document.querySelector('.social-auth-buttons')?.style.setProperty('display', '');
     });
     window.addEventListener('offline', () => {
-        const socialBtns = document.querySelector('.social-auth-buttons');
-        if (socialBtns) socialBtns.style.display = 'none';
+        document.querySelector('.social-auth-buttons')?.style.setProperty('display', 'none');
     });
 </script>
 {% endblock %}
