@@ -120,44 +120,7 @@
                         </button>
                     </form>
 
-                    <!-- Phone Sign Up -->
-                    <div class="auth-divider"><span>or sign up with phone</span></div>
 
-                    <div class="phone-auth-section" id="phoneAuthSection">
-                        <div class="form-group" id="phoneStep">
-                            <div class="phone-input-row">
-                                <select class="form-input" id="countryCode" style="max-width: 100px;">
-                                    <option value="+91">🇮🇳 +91</option>
-                                    <option value="+1">🇺🇸 +1</option>
-                                    <option value="+44">🇬🇧 +44</option>
-                                    <option value="+61">🇦🇺 +61</option>
-                                    <option value="+81">🇯🇵 +81</option>
-                                </select>
-                                <input type="tel" class="form-input" id="phoneNumber" placeholder="Phone number">
-                            </div>
-                            <button type="button" class="btn btn-ghost btn-full" style="margin-top: 10px;"
-                                onclick="sendPhoneOTP()">
-                                <span class="material-icons-round">send</span>
-                                Send Verification Code
-                            </button>
-                        </div>
-                        <div class="form-group" id="otpStep" style="display: none;">
-                            <label><span class="material-icons-round">pin</span> Enter Code</label>
-                            <div class="otp-input-row" id="otpInputRow">
-                                <input type="text" maxlength="1" class="otp-box" data-index="0">
-                                <input type="text" maxlength="1" class="otp-box" data-index="1">
-                                <input type="text" maxlength="1" class="otp-box" data-index="2">
-                                <input type="text" maxlength="1" class="otp-box" data-index="3">
-                                <input type="text" maxlength="1" class="otp-box" data-index="4">
-                                <input type="text" maxlength="1" class="otp-box" data-index="5">
-                            </div>
-                            <button type="button" class="btn btn-primary btn-full" style="margin-top: 10px;"
-                                onclick="verifyPhoneOTP()">
-                                <span class="material-icons-round">verified</span>
-                                Verify & Create Account
-                            </button>
-                        </div>
-                    </div>
 
                     <div class="auth-footer">
                         <p>Already have an account? <a href="/accounts/login/" style="color: var(--accent);">Login</a></p>
@@ -170,50 +133,6 @@
 </div>
 
 <script>
-    // ── Phone OTP (Django backend) ──
-    async function sendPhoneOTP() {
-        const code = document.getElementById('countryCode').value;
-        const phone = document.getElementById('phoneNumber').value.trim();
-        if (!phone) { showMsg('Please enter your phone number.', 'error'); return; }
-
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
-            const resp = await fetch('/accounts/send-otp/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ phone: code + phone })
-            });
-            const data = await resp.json();
-            if (data.status === 'sent') {
-                document.getElementById('otpStep').style.display = 'block';
-                showMsg(data.message || 'Code sent!', 'success');
-                document.querySelector('.otp-box')?.focus();
-            } else {
-                showMsg(data.message || 'Failed to send code', 'error');
-            }
-        } catch (e) {
-            document.getElementById('otpStep').style.display = 'block';
-            showMsg('Check server console for demo OTP code.', 'info');
-        }
-    }
-
-    async function verifyPhoneOTP() {
-        const boxes = document.querySelectorAll('.otp-box');
-        const otp = Array.from(boxes).map(b => b.value).join('');
-        if (otp.length !== 6) { showMsg('Enter the full 6-digit code.', 'error'); return; }
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
-            const resp = await fetch('/accounts/verify-otp/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ otp: otp, phone: document.getElementById('countryCode').value + document.getElementById('phoneNumber').value.trim() })
-            });
-            const data = await resp.json();
-            if (data.status === 'verified') window.location.href = data.redirect || '/chat/';
-            else showMsg(data.message || 'Invalid code', 'error');
-        } catch (e) { showMsg('Verification failed.', 'error'); }
-    }
-
     function showMsg(msg, type) {
         const el = document.getElementById('authAlertMsg');
         if (!el) return;
@@ -222,10 +141,5 @@
         el.style.display = 'flex';
         if (type !== 'error') setTimeout(() => el.style.display = 'none', 5000);
     }
-
-    document.querySelectorAll('.otp-box').forEach((box, i, boxes) => {
-        box.addEventListener('input', () => { if (box.value && i < boxes.length - 1) boxes[i + 1].focus(); });
-        box.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus(); });
-    });
 </script>
 {% endblock %}
