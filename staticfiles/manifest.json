@@ -1,0 +1,16 @@
+{
+    "name": "V-OFFLINE CHAT",
+    "short_name": "V-OFFLINE CHAT",
+    "description": "Modern real-time chat platform",
+    "start_url": "/chat/",
+    "display": "standalone",
+    "background_color": "#0a0a1a",
+    "theme_color": "#6c5ce7",
+    "icons": [
+        {
+            "src": "/static/img/default-avatar.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

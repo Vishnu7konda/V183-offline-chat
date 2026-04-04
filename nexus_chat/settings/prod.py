@@ -33,7 +33,7 @@ CHANNEL_LAYERS = {
 
 # ── Static Files (WhiteNoise) ──────────────────────────────────
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # ── Sessions (DB-backed — works on serverless) ─────────────────
