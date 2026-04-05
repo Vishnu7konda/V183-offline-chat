@@ -67,13 +67,19 @@
 
         <!-- Nearby Devices Panel (real-time via WebSocket presence) -->
         <div class="nearby-panel" id="nearbyPanel">
-            <div class="nearby-panel-header" onclick="toggleNearbyPanel()">
-                <div class="nearby-panel-title">
+            <div class="nearby-panel-header">
+                <div class="nearby-panel-title" onclick="toggleNearbyPanel()" style="flex:1; cursor:pointer; display:flex; align-items:center; gap:6px;">
                     <span class="material-icons-round">radar</span>
                     <span>Localized Nodes</span>
                     <span class="nearby-count-badge" id="nearbyCountBadge" style="display:none; background: var(--accent);">0</span>
                 </div>
-                <span class="material-icons-round nearby-toggle-icon" id="nearbyToggleIcon">expand_more</span>
+                <button id="nearbyRefreshBtn" onclick="event.stopPropagation(); refreshNearbyDevices();"
+                    title="Refresh nearby devices"
+                    style="background:none; border:none; cursor:pointer; color:var(--accent); padding:4px 6px; border-radius:var(--r-sm); display:flex; align-items:center; transition: background 0.2s;"
+                    onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'">
+                    <span class="material-icons-round" style="font-size:1.1rem;">refresh</span>
+                </button>
+                <span class="material-icons-round nearby-toggle-icon" id="nearbyToggleIcon" onclick="toggleNearbyPanel()" style="cursor:pointer;">expand_more</span>
             </div>
             <div class="nearby-panel-body" id="nearbyPanelBody">
                 <div class="nearby-device-list" id="nearbyDeviceList">
@@ -82,8 +88,10 @@
                         <p>Scanning localized network for active nodes...</p>
                     </div>
                 </div>
+                <div id="nearbyLastUpdated" style="display:none; font-size:0.7rem; color:var(--text-muted); text-align:center; padding:4px 0 6px;"></div>
             </div>
         </div>
+
 
         <div class="conversation-list" id="conversationList">
             {% for conv in conversations %}

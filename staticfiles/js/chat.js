@@ -18,10 +18,11 @@
     const sendBtn = document.getElementById('sendBtn');
 
     let chatSocket = null;
-    let presenceSocket = null;
     let typingTimeout = null;
     let jwtToken = null;
     let currentUploadXHR = null;
+    let heartbeatInterval = null;
+    let refreshInProgress = false;
 
     // ──── JWT Token Fetch ────────────────────────────────────────────
     async function fetchJWT() {
@@ -103,42 +104,51 @@
         }
     }
 
-    // ──── WebSocket Connection (Presence) ────────────────────────────
-    function connectPresenceSocket() {
-        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        let wsUrl = `${wsProtocol}//${location.host}/ws/presence/`;
-        if (jwtToken) wsUrl += `?token=${jwtToken}`;
-        presenceSocket = new WebSocket(wsUrl);
+    // ──── HTTP Presence Polling (replaces WebSocket presence) ────────
+    // Vercel serverless doesn't support persistent WebSockets, so we
+    // poll /discovery/heartbeat/ via HTTP every 30 seconds instead.
+    async function pollHeartbeat(isManual) {
+        const btn = document.getElementById('nearbyRefreshBtn');
+        const icon = btn ? btn.querySelector('.material-icons-round') : null;
+        const stamp = document.getElementById('nearbyLastUpdated');
 
-        presenceSocket.onopen = () => {
-            console.log('[Nexus] Presence WebSocket connected');
-        };
+        if (isManual) {
+            if (refreshInProgress) return;
+            refreshInProgress = true;
+            if (icon) icon.style.animation = 'spin 0.7s linear infinite';
+        }
 
-        presenceSocket.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            if (data.type === 'presence_update') {
-                renderNearbyDevices(data.users);
-                // Also update the chat header if talking to one of these users
-                updateActiveNodeStatus(data.users);
+        try {
+            const resp = await fetch('/discovery/heartbeat/', {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                renderNearbyDevices(data.devices || []);
+                updateActiveNodeStatus(data.devices || []);
+                if (stamp) {
+                    const now = new Date();
+                    stamp.textContent = 'Updated ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    stamp.style.display = 'block';
+                }
             }
-        };
-
-        presenceSocket.onclose = () => {
-            console.log('[Nexus] Presence WebSocket closed, reconnecting in 5s...');
-            setTimeout(connectPresenceSocket, 5000);
-        };
-
-        presenceSocket.onerror = (err) => {
-            console.error('[Nexus] Presence WebSocket error:', err);
-        };
-
-        // Heartbeat every 30 seconds
-        setInterval(() => {
-            if (presenceSocket && presenceSocket.readyState === WebSocket.OPEN) {
-                presenceSocket.send(JSON.stringify({ type: 'heartbeat' }));
-            }
-        }, 30000);
+        } catch (e) {
+            console.warn('[Nexus] Heartbeat poll failed:', e);
+        } finally {
+            refreshInProgress = false;
+            if (icon) icon.style.animation = '';
+        }
     }
+
+    function startHeartbeatPolling() {
+        pollHeartbeat(false); // immediate first poll
+        heartbeatInterval = setInterval(() => pollHeartbeat(false), 30000);
+    }
+
+    // Exposed so the HTML refresh button can call it
+    window.refreshNearbyDevices = function() { pollHeartbeat(true); };
 
     // ──── Nearby Devices Rendering ───────────────────────────────────
     function renderNearbyDevices(users) {
@@ -716,7 +726,7 @@
         scrollToBottom();
         await fetchJWT();
         connectWebSocket();
-        connectPresenceSocket();
+        startHeartbeatPolling();
         
         // Auto-hide any server-rendered messages
         const existingAlerts = document.querySelectorAll('#chatNotificationsStack .alert');
