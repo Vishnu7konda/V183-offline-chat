@@ -6,10 +6,25 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.db.models import Q, Max, Count
+from django.db.models import Q, Max, Count, Subquery, OuterRef, IntegerField
+from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.utils import timezone
 from .models import Conversation, Message
+
+
+def _annotate_unread(qs, user):
+    """Annotate each conversation with unread message count for this user."""
+    unread_sub = Message.objects.filter(
+        conversation=OuterRef('pk'),
+        is_read=False,
+        is_deleted=False,
+    ).exclude(sender=user).values('conversation').annotate(
+        cnt=Count('id')
+    ).values('cnt')
+    return qs.annotate(
+        unread_count=Coalesce(Subquery(unread_sub, output_field=IntegerField()), 0)
+    )
 
 
 @login_required
@@ -22,7 +37,10 @@ def chat_home(request):
     if org:
         qs = qs.filter(organization=org)
 
-    conversations = [c for c in qs.order_by('-updated_at') if not c.is_archived]
+    conversations = _annotate_unread(
+        qs.order_by('-updated_at'), request.user
+    )
+    conversations = [c for c in conversations if not c.is_archived]
 
     return render(request, 'chat/chat.html', {
         'conversations': conversations,
@@ -54,7 +72,10 @@ def conversation_view(request, conversation_id):
     if org:
         conv_qs = conv_qs.filter(organization=org)
 
-    conversations = [c for c in conv_qs.order_by('-updated_at') if not c.is_archived]
+    conversations = _annotate_unread(
+        conv_qs.order_by('-updated_at'), request.user
+    )
+    conversations = [c for c in conversations if not c.is_archived]
 
     return render(request, 'chat/chat.html', {
         'conversations': conversations,

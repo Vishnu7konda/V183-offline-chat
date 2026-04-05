@@ -56,7 +56,7 @@
     async function startMessagePolling() {
         if (!conversationId) return;
         await fetchNewMessages();  // immediate first fetch
-        pollInterval = setInterval(fetchNewMessages, 3000);
+        pollInterval = setInterval(fetchNewMessages, 1000); // 1 second for near-instant delivery
     }
 
     async function fetchNewMessages() {
@@ -72,7 +72,7 @@
                 if (msg.sender !== username) {
                     appendMessage(msg);
                     scrollToBottom();
-                    showNotification(msg.sender, msg.content);
+                    // Badge is already in this chat, no sidebar increment needed
                 }
             });
         } catch (e) {
@@ -549,7 +549,8 @@
 
     // ──── Notifications ──────────────────────────────────────────────
     function getNotificationStatus() {
-        return localStorage.getItem('v-offline-notifications') !== 'false';
+        // Default OFF — user must explicitly enable
+        return localStorage.getItem('v-offline-notifications') === 'true';
     }
 
     window.toggleNotifications = function() {
