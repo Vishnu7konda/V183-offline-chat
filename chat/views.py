@@ -301,12 +301,15 @@ def poll_messages(request, conversation_id):
     except (TypeError, ValueError):
         after_id = 0
 
-    messages = conversation.messages.filter(
+    base_qs = conversation.messages.filter(
         id__gt=after_id
-    ).order_by('timestamp').select_related('sender')[:50]
+    ).order_by('timestamp')
 
-    # Mark as read
-    messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    # Mark as read using the unsliced queryset (sliced QS can't be filtered)
+    base_qs.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+
+    # Now slice for the response payload
+    messages = list(base_qs.select_related('sender')[:50])
 
     return JsonResponse({
         'messages': [m.to_json() for m in messages]
