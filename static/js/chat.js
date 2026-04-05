@@ -17,12 +17,14 @@
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
 
-    let chatSocket = null;
+    let chatSocket = null;  // kept for legacy references, not used for send/recv
     let typingTimeout = null;
     let jwtToken = null;
     let currentUploadXHR = null;
     let heartbeatInterval = null;
     let refreshInProgress = false;
+    let lastMessageId = 0;  // tracks highest message id seen, for polling
+    let pollInterval = null;
 
     // ──── JWT Token Fetch ────────────────────────────────────────────
     async function fetchJWT() {
@@ -37,32 +39,45 @@
         }
     }
 
-    // ──── WebSocket Connection (Chat) ────────────────────────────────
+    // ──── HTTP Chat (replaces WebSocket on Vercel) ─────────────────────────
+    // WebSockets are not supported on Vercel serverless. We use:
+    // - POST /chat/<id>/send/ to send messages
+    // - GET  /chat/<id>/poll/?after=<id> every 3s to get new messages
     function connectWebSocket() {
         if (!conversationId) return;
-        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        let wsUrl = `${wsProtocol}//${location.host}/ws/chat/${conversationId}/`;
-        if (jwtToken) wsUrl += `?token=${jwtToken}`;
-        chatSocket = new WebSocket(wsUrl);
+        // Seed lastMessageId from existing DOM messages so we don't re-render history
+        document.querySelectorAll('[data-msg-id]').forEach(el => {
+            const id = parseInt(el.dataset.msgId, 10);
+            if (id > lastMessageId) lastMessageId = id;
+        });
+        startMessagePolling();
+    }
 
-        chatSocket.onopen = () => {
-            console.log('[Nexus] Chat WebSocket connected');
-            sendReadReceipt();
-        };
+    async function startMessagePolling() {
+        if (!conversationId) return;
+        await fetchNewMessages();  // immediate first fetch
+        pollInterval = setInterval(fetchNewMessages, 3000);
+    }
 
-        chatSocket.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            handleSocketMessage(data);
-        };
-
-        chatSocket.onclose = (e) => {
-            console.log('[Nexus] Chat WebSocket closed, reconnecting in 3s...');
-            setTimeout(connectWebSocket, 3000);
-        };
-
-        chatSocket.onerror = (err) => {
-            console.error('[Nexus] Chat WebSocket error:', err);
-        };
+    async function fetchNewMessages() {
+        try {
+            const resp = await fetch(`/chat/${conversationId}/poll/?after=${lastMessageId}`, {
+                credentials: 'same-origin'
+            });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            (data.messages || []).forEach(msg => {
+                if (msg.id > lastMessageId) lastMessageId = msg.id;
+                // Only append messages from others (own messages shown immediately on send)
+                if (msg.sender !== username) {
+                    appendMessage(msg);
+                    scrollToBottom();
+                    showNotification(msg.sender, msg.content);
+                }
+            });
+        } catch (e) {
+            // Silent - likely offline
+        }
     }
 
     function handleSocketMessage(data) {
@@ -254,20 +269,54 @@
         messagesArea.appendChild(div);
     }
 
-    // ──── Send Message ───────────────────────────────────────────────
-    window.sendMessage = function () {
-        if (!chatSocket || !messageInput) return;
+    // ──── Send Message (HTTP POST) ───────────────────────────────
+    window.sendMessage = async function () {
+        if (!messageInput || !conversationId) return;
         const content = messageInput.value.trim();
         if (!content) return;
 
-        chatSocket.send(JSON.stringify({
-            type: 'message',
-            content: content,
-        }));
-
+        // Optimistic UI — show message immediately
+        const tempId = 'tmp_' + Date.now();
+        const optimistic = {
+            id: tempId, sender: username, content: content,
+            message_type: 'text', timestamp: new Date().toISOString()
+        };
+        appendMessage(optimistic);
+        scrollToBottom();
         messageInput.value = '';
         messageInput.style.height = 'auto';
         messageInput.focus();
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+            || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+        try {
+            const resp = await fetch(`/chat/${conversationId}/send/`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ content })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                // Replace temp element with real message id
+                const tempEl = document.querySelector(`[data-msg-id="${tempId}"]`);
+                if (tempEl && data.message?.id) {
+                    tempEl.dataset.msgId = data.message.id;
+                    if (data.message.id > lastMessageId) lastMessageId = data.message.id;
+                }
+            } else {
+                // Remove optimistic on failure
+                document.querySelector(`[data-msg-id="${tempId}"]`)?.remove();
+                showNotification('System', 'Message failed to send');
+            }
+        } catch (e) {
+            document.querySelector(`[data-msg-id="${tempId}"]`)?.remove();
+            showNotification('System', 'Network error — message not sent');
+        }
     };
 
     window.handleKeyDown = function (e) {

@@ -1,17 +1,14 @@
-"""
-Chat — Views
-Conversation listing, detail, creation, and media upload with WebSocket broadcast.
-"""
+import json
 import os
 import uuid
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.db.models import Q, Max, Count
 from django.conf import settings
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from django.utils import timezone
 from .models import Conversation, Message
 
 
@@ -47,15 +44,6 @@ def conversation_view(request, conversation_id):
     unseen = messages_qs.filter(is_read=False).exclude(sender=request.user)
     if unseen.exists():
         unseen.update(is_read=True)
-        # Broadcast read receipt to room
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f'chat_{conversation_id}',
-            {
-                'type': 'read_receipt',
-                'reader': request.user.username,
-            }
-        )
 
     # Get other participant
     other_user = conversation.participants.exclude(id=request.user.id).first()
@@ -176,23 +164,10 @@ def upload_media(request, conversation_id):
     )
 
     # Update conversation timestamp
-    from django.utils import timezone
     conversation.updated_at = timezone.now()
     conversation.save(update_fields=['updated_at'])
 
-    # Broadcast message via WebSocket to the conversation group
-    message_data = message.to_json()
-    channel_layer = get_channel_layer()
-    room_group_name = f'chat_{conversation_id}'
-    async_to_sync(channel_layer.group_send)(
-        room_group_name,
-        {
-            'type': 'chat_message',
-            'message': message_data,
-        }
-    )
-
-    return JsonResponse({'message': message_data})
+    return JsonResponse({'message': message.to_json()})
 
 
 @login_required
@@ -280,3 +255,59 @@ def create_group(request):
         return JsonResponse({'id': conversation.id})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ── HTTP Message API (Vercel-compatible, replaces WebSocket send) ───────────────
+
+@login_required
+@require_POST
+def send_message(request, conversation_id):
+    """Send a text message via HTTP POST. Replaces WebSocket send on Vercel."""
+    conversation = get_object_or_404(
+        Conversation.objects.filter(participants=request.user),
+        id=conversation_id
+    )
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    content = (data.get('content') or '').strip()
+    if not content:
+        return JsonResponse({'error': 'Empty message'}, status=400)
+
+    message = Message.objects.create(
+        conversation=conversation,
+        sender=request.user,
+        content=content,
+        message_type='text',
+    )
+    conversation.updated_at = timezone.now()
+    conversation.save(update_fields=['updated_at'])
+
+    return JsonResponse({'message': message.to_json()}, status=201)
+
+
+@login_required
+def poll_messages(request, conversation_id):
+    """Return messages newer than `after` message id. Used for HTTP polling."""
+    conversation = get_object_or_404(
+        Conversation.objects.filter(participants=request.user),
+        id=conversation_id
+    )
+    after_id = request.GET.get('after', 0)
+    try:
+        after_id = int(after_id)
+    except (TypeError, ValueError):
+        after_id = 0
+
+    messages = conversation.messages.filter(
+        id__gt=after_id
+    ).order_by('timestamp').select_related('sender')[:50]
+
+    # Mark as read
+    messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+
+    return JsonResponse({
+        'messages': [m.to_json() for m in messages]
+    })
