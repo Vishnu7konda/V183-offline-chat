@@ -10,7 +10,7 @@ from django.db.models import Q, Max, Count, Subquery, OuterRef, IntegerField
 from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.utils import timezone
-from .models import Conversation, Message
+from .models import Conversation, Message, TypingStatus
 
 
 def _annotate_unread(qs, user):
@@ -283,7 +283,7 @@ def create_group(request):
 @login_required
 @require_POST
 def send_message(request, conversation_id):
-    """Send a text message via HTTP POST. Replaces WebSocket send on Vercel."""
+    """Send a text or media (Cloudinary URL) message via HTTP POST."""
     conversation = get_object_or_404(
         Conversation.objects.filter(participants=request.user),
         id=conversation_id
@@ -293,15 +293,28 @@ def send_message(request, conversation_id):
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    content = (data.get('content') or '').strip()
-    if not content:
+    media_url = (data.get('media_url') or '').strip()
+    msg_type  = (data.get('message_type') or 'text').strip()
+    content   = (data.get('content') or '').strip()
+
+    VALID_TYPES = {'text', 'image', 'video', 'document', 'voice'}
+    if msg_type not in VALID_TYPES:
+        msg_type = 'text'
+
+    if media_url:
+        # Cloudinary URL stored in content field; no local file needed
+        content = media_url
+    elif not content:
         return JsonResponse({'error': 'Empty message'}, status=400)
+
+    # Stop typing when a message is sent
+    TypingStatus.objects.filter(conversation=conversation, user=request.user).delete()
 
     message = Message.objects.create(
         conversation=conversation,
         sender=request.user,
         content=content,
-        message_type='text',
+        message_type=msg_type,
     )
     conversation.updated_at = timezone.now()
     conversation.save(update_fields=['updated_at'])
@@ -311,7 +324,8 @@ def send_message(request, conversation_id):
 
 @login_required
 def poll_messages(request, conversation_id):
-    """Return messages newer than `after` message id. Used for HTTP polling."""
+    """Return messages newer than `after` id + who is currently typing."""
+    import datetime
     conversation = get_object_or_404(
         Conversation.objects.filter(participants=request.user),
         id=conversation_id
@@ -326,12 +340,39 @@ def poll_messages(request, conversation_id):
         id__gt=after_id
     ).order_by('timestamp')
 
-    # Mark as read using the unsliced queryset (sliced QS can't be filtered)
     base_qs.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
-
-    # Now slice for the response payload
     messages = list(base_qs.select_related('sender')[:50])
 
+    # Who is typing right now (updated within last 4 seconds)
+    typing_cutoff = timezone.now() - datetime.timedelta(seconds=4)
+    typing_users = list(
+        TypingStatus.objects.filter(
+            conversation=conversation,
+            updated_at__gte=typing_cutoff
+        ).exclude(user=request.user).values_list('user__username', flat=True)
+    )
+
     return JsonResponse({
-        'messages': [m.to_json() for m in messages]
+        'messages': [m.to_json() for m in messages],
+        'typing_users': typing_users,
     })
+
+
+@login_required
+def set_typing(request, conversation_id):
+    """POST = user started typing. DELETE = stopped/sent. Used for HTTP typing indicator."""
+    conversation = get_object_or_404(
+        Conversation.objects.filter(participants=request.user),
+        id=conversation_id
+    )
+    if request.method == 'DELETE' or request.GET.get('stop'):
+        TypingStatus.objects.filter(conversation=conversation, user=request.user).delete()
+        return JsonResponse({'ok': True})
+
+    # POST — upsert typing row (auto_now updates the timestamp)
+    TypingStatus.objects.update_or_create(
+        conversation=conversation,
+        user=request.user,
+        defaults={}
+    )
+    return JsonResponse({'ok': True})

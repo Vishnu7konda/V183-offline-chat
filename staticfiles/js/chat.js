@@ -68,13 +68,23 @@
             const data = await resp.json();
             (data.messages || []).forEach(msg => {
                 if (msg.id > lastMessageId) lastMessageId = msg.id;
-                // Only append messages from others (own messages shown immediately on send)
                 if (msg.sender !== username) {
                     appendMessage(msg);
                     scrollToBottom();
-                    // Badge is already in this chat, no sidebar increment needed
                 }
             });
+            // Show/hide typing indicator from poll response
+            const typers = data.typing_users || [];
+            const indicator = document.getElementById('typingIndicator');
+            const typerName = document.getElementById('typingUser');
+            if (indicator) {
+                if (typers.length > 0) {
+                    if (typerName) typerName.textContent = typers[0];
+                    indicator.style.display = 'flex';
+                } else {
+                    indicator.style.display = 'none';
+                }
+            }
         } catch (e) {
             // Silent - likely offline
         }
@@ -327,12 +337,38 @@
     };
 
     // ──── Typing Indicator ───────────────────────────────────────────
-    window.handleTyping = function () {
-        if (!chatSocket) return;
-        chatSocket.send(JSON.stringify({ type: 'typing' }));
+    // ──── Typing Indicator (HTTP) ─────────────────────────────────
+    let typingDebounce = null;
+    let typingActive = false;
 
-        if (typingTimeout) clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => { }, 3000);
+    window.handleTyping = function () {
+        if (!conversationId) return;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+            || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+        // Send typing signal max once every 2 seconds to avoid flooding
+        if (!typingActive) {
+            typingActive = true;
+            fetch(`/chat/${conversationId}/typing/`, {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+                body: '{}'
+            }).catch(() => {});
+        }
+
+        // Auto-clear typing after 4 seconds of no keystrokes
+        clearTimeout(typingDebounce);
+        typingDebounce = setTimeout(() => {
+            typingActive = false;
+            fetch(`/chat/${conversationId}/typing/?stop=1`, {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+                body: '{}'
+            }).catch(() => {});
+        }, 4000);
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => { typingActive = false; }, 2000);
     };
 
     function showTyping(sender) {
@@ -612,115 +648,102 @@
     // ──── Emoji Picker ───────────────────────────────────────────────
     const emojis = ['😀', '😂', '😍', '🥰', '😎', '🤔', '👍', '👎', '❤️', '🔥', '🎉', '😢', '😡', '🤣', '✨', '💯', '🙏', '👋', '💪', '🤝', '😊', '🥺', '😤', '🤩', '😴', '🤮', '👀', '💀', '🫡', '🎶'];
 
-    window.toggleEmojiPicker = function () {
-        const picker = document.getElementById('emojiPicker');
-        if (!picker) return;
-        picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
-        if (picker.style.display === 'flex' && !picker.dataset.loaded) {
-            const grid = document.getElementById('emojiGrid');
-            emojis.forEach(e => {
-                const btn = document.createElement('button');
-                btn.className = 'emoji-item';
-                btn.textContent = e;
-                btn.onclick = () => {
-                    messageInput.value += e;
-                    messageInput.focus();
-                };
-                grid.appendChild(btn);
-            });
-            picker.dataset.loaded = 'true';
-        }
-    };
+    // ──── Media Upload (Cloudinary direct browser upload) ─────────────────
+    // Files upload directly from browser to Cloudinary (unsigned preset).
+    // Vercel's filesystem is ephemeral so we can't save files server-side.
+    const CLOUDINARY_CLOUD = 'dndfsezw2';
+    const CLOUDINARY_PRESET = 'v183_oc_uploads';
 
-    // ──── Message Search ─────────────────────────────────────────────
-    window.toggleMessageSearch = function () {
-        const bar = document.getElementById('messageSearchBar');
-        if (bar) {
-            bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
-            if (bar.style.display === 'flex') bar.querySelector('input').focus();
-        }
-    };
-
-    // ──── Media Upload with Progress ─────────────────────────────────
-    window.uploadMedia = function (input) {
+    window.uploadMedia = async function (input) {
         if (!input.files.length || !conversationId) return;
-
         const file = input.files[0];
-        const maxSize = 10 * 1024 * 1024; // 10 MB
+        input.value = '';
+
+        const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            alert('File too large. Maximum size is 10 MB.');
-            input.value = '';
+            alert('File too large. Maximum 10 MB.');
             return;
         }
 
-        const formData = new FormData();
-        formData.append('media', file);
-
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
-            || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-
-        // Show progress bar
-        const progressBar = document.getElementById('uploadProgressBar');
-        const progressFill = document.getElementById('uploadProgressFill');
+        const progressBar     = document.getElementById('uploadProgressBar');
+        const progressFill    = document.getElementById('uploadProgressFill');
         const progressPercent = document.getElementById('uploadProgressPercent');
-        const fileName = document.getElementById('uploadFileName');
-
+        const fileNameEl      = document.getElementById('uploadFileName');
         if (progressBar) progressBar.style.display = 'flex';
-        if (fileName) fileName.textContent = `Uploading: ${file.name}`;
-        if (progressFill) progressFill.style.width = '0%';
-        if (progressPercent) progressPercent.textContent = '0%';
+        if (fileNameEl) fileNameEl.textContent = `Uploading: ${file.name}`;
+        if (progressFill) progressFill.style.width = '5%';
 
-        const xhr = new XMLHttpRequest();
-        currentUploadXHR = xhr;
+        try {
+            // 1. Upload directly to Cloudinary
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_PRESET);
 
-        xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                const pct = Math.round((e.loaded / e.total) * 100);
-                if (progressFill) progressFill.style.width = pct + '%';
-                if (progressPercent) progressPercent.textContent = pct + '%';
-            }
-        });
+            const xhr = new XMLHttpRequest();
+            currentUploadXHR = xhr;
 
-        xhr.addEventListener('load', () => {
+            const cloudUrl = await new Promise((resolve, reject) => {
+                xhr.upload.addEventListener('progress', e => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        if (progressFill) progressFill.style.width = pct + '%';
+                        if (progressPercent) progressPercent.textContent = pct + '%';
+                    }
+                });
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        const d = JSON.parse(xhr.responseText);
+                        resolve(d.secure_url);
+                    } else {
+                        reject(new Error('Cloudinary upload failed'));
+                    }
+                });
+                xhr.addEventListener('error', () => reject(new Error('Network error')));
+                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/upload`);
+                xhr.send(formData);
+            });
+
             currentUploadXHR = null;
             if (progressBar) progressBar.style.display = 'none';
 
-            if (xhr.status >= 200 && xhr.status < 300) {
-                // Message will arrive via WebSocket broadcast — no need to append here
-                console.log('[Nexus] File uploaded successfully');
+            // 2. Detect type
+            let msgType = 'document';
+            if (file.type.startsWith('image/')) msgType = 'image';
+            else if (file.type.startsWith('video/')) msgType = 'video';
+            else if (file.type.startsWith('audio/')) msgType = 'voice';
+
+            // 3. Tell Django about the uploaded file
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+            const resp = await fetch(`/chat/${conversationId}/send/`, {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ content: file.name, media_url: cloudUrl, message_type: msgType })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                appendMessage(data.message);
+                scrollToBottom();
+                if (data.message.id > lastMessageId) lastMessageId = data.message.id;
             } else {
-                try {
-                    const errData = JSON.parse(xhr.responseText);
-                    alert(errData.error || 'Upload failed');
-                } catch (_) {
-                    alert('Upload failed');
-                }
+                showNotification('System', 'Upload saved but failed to register message');
             }
-        });
-
-        xhr.addEventListener('error', () => {
+        } catch (e) {
             currentUploadXHR = null;
             if (progressBar) progressBar.style.display = 'none';
-            alert('Upload failed. Please try again.');
-        });
-
-        xhr.open('POST', `/chat/${conversationId}/upload/`);
-        xhr.setRequestHeader('X-CSRFToken', csrfToken);
-        xhr.send(formData);
-
-        input.value = '';
+            showNotification('System', `Upload failed: ${e.message}`);
+        }
     };
 
     window.cancelUpload = function () {
-        if (currentUploadXHR) {
-            currentUploadXHR.abort();
-            currentUploadXHR = null;
-        }
+        if (currentUploadXHR) { currentUploadXHR.abort(); currentUploadXHR = null; }
         const progressBar = document.getElementById('uploadProgressBar');
         if (progressBar) progressBar.style.display = 'none';
     };
 
     // ──── Utilities ──────────────────────────────────────────────────
+
     function scrollToBottom() {
         if (messagesArea) {
             messagesArea.scrollTop = messagesArea.scrollHeight;

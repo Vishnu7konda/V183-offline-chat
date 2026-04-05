@@ -75,14 +75,23 @@ class Message(models.Model):
         return f'{self.sender.username}: {preview}'
 
     def to_json(self):
+        content_val = '' if self.is_deleted else self.content
+        # If no Django media file but message is media type → content holds Cloudinary URL
+        if self.media:
+            media_url = self.media.url
+        elif self.message_type in ('image', 'video', 'document', 'voice') and not self.is_deleted:
+            media_url = self.content   # Cloudinary URL stored in content
+            content_val = ''           # Don't show URL as text
+        else:
+            media_url = None
         return {
             'id': self.id,
             'sender': self.sender.username,
             'sender_id': self.sender.id,
             'sender_avatar': self.sender.profile.avatar_url,
-            'content': '' if self.is_deleted else self.content,
+            'content': content_val,
             'message_type': self.message_type,
-            'media_url': self.media.url if self.media else None,
+            'media_url': media_url,
             'timestamp': self.timestamp.isoformat(),
             'is_delivered': self.is_delivered,
             'is_read': self.is_read,
@@ -91,3 +100,19 @@ class Message(models.Model):
             'reply_to': self.reply_to_id,
             'reactions': self.reactions,
         }
+
+
+class TypingStatus(models.Model):
+    """Tracks who is currently typing in a conversation — polled every second."""
+    conversation = models.ForeignKey(
+        Conversation, on_delete=models.CASCADE, related_name='typing_statuses'
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='typing_statuses')
+    updated_at = models.DateTimeField(auto_now=True)  # refreshed on every keystroke
+
+    class Meta:
+        unique_together = ('conversation', 'user')
+
+    def __str__(self):
+        return f'{self.user.username} typing in {self.conversation_id}'
+

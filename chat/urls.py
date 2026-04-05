@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:conversation_id>/upload/', views.upload_media, name='upload_media'),
     path('<int:conversation_id>/send/', views.send_message, name='send_message'),
     path('<int:conversation_id>/poll/', views.poll_messages, name='poll_messages'),
+    path('<int:conversation_id>/typing/', views.set_typing, name='set_typing'),
     path('<int:conversation_id>/pin/', views.toggle_pin, name='toggle_pin'),
     path('<int:conversation_id>/archive/', views.toggle_archive, name='toggle_archive'),
     path('search/', views.search_messages, name='search_messages'),
